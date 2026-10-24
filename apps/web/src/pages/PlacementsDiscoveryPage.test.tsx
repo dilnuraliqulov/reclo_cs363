@@ -151,6 +151,89 @@ describe('PlacementsDiscoveryPage', () => {
     expect(within(dialog).getByText('Monthly rate')).toBeInTheDocument()
   })
 
+  it('adds the selected type to the markers query', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'LED Screen' }))
+
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({ type: 'LED_SCREEN' }),
+    )
+  })
+
+  it('adds a trimmed city to the markers query', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.type(screen.getByPlaceholderText('City (e.g. Tashkent)'), '  Samarkand  ')
+
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({ city: 'Samarkand' }),
+    )
+  })
+
+  it('sends the price range as numbers', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.type(screen.getByPlaceholderText('Min UZS'), '1000000')
+    await user.type(screen.getByPlaceholderText('Max UZS'), '9000000')
+
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({
+        minPrice: 1_000_000,
+        maxPrice: 9_000_000,
+      }),
+    )
+  })
+
+  it('clears the filters on reset and reuses the cached unfiltered results', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'Billboard' }))
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({ type: 'BILLBOARD' }),
+    )
+    const callsWhileFiltered = fetchMarkersMock.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: /Reset filters/i }))
+
+    // Reset restores the original query key, which is still cached, so the
+    // unfiltered view comes back without another request.
+    await waitFor(() => expect(screen.queryByText('Filters applied')).not.toBeInTheDocument())
+    expect(fetchMarkersMock.mock.calls.length).toBe(callsWhileFiltered)
+    expect(screen.getByRole('button', { name: 'All Types' })).toBeInTheDocument()
+  })
+
+  it('keeps the bounds in every filtered query', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'Wall Mural' }))
+
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({
+        minLat: 41.0,
+        maxLat: 41.6,
+        minLng: 69.0,
+        maxLng: 69.6,
+      }),
+    )
+  })
+
+  it('counts the markers on the mobile list toggle', async () => {
+    renderWithProviders()
+
+    expect(await screen.findByRole('button', { name: /List \(2\)/ })).toBeInTheDocument()
+  })
+
   it('surfaces a retry action when the markers query fails', async () => {
     fetchMarkersMock.mockRejectedValue(new Error('Network down'))
     renderWithProviders()
