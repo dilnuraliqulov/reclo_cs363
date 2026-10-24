@@ -4,14 +4,24 @@ export function formatPrice(price: number): string {
   return `${new Intl.NumberFormat('uz-UZ').format(price)} UZS`
 }
 
+// Rounds to at most one decimal and drops a trailing ".0", so pins read
+// "2M UZS" rather than "2.0M UZS".
+function formatScaled(value: number, suffix: string): string {
+  const rounded = Math.round(value * 10) / 10
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}${suffix}`
+}
+
 export function formatCompactPrice(price: number): string {
   if (price >= 1_000_000) {
-    const val = (price / 1_000_000).toFixed(price % 1_000_000 === 0 ? 0 : 1)
-    return `${val}M UZS`
+    return formatScaled(price / 1_000_000, 'M UZS')
   }
   if (price >= 1_000) {
-    const val = (price / 1_000).toFixed(price % 1_000 === 0 ? 0 : 1)
-    return `${val}K UZS`
+    const thousands = price / 1_000
+    // Rounding can land on 1000K (e.g. 999,999), which reads better as 1M.
+    if (Math.round(thousands * 10) / 10 >= 1_000) {
+      return '1M UZS'
+    }
+    return formatScaled(thousands, 'K UZS')
   }
   return `${price} UZS`
 }
