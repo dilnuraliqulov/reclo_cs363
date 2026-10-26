@@ -1,4 +1,5 @@
 export * from './auth'
 export * from './errors'
 export * from './health'
+export * from './inquiry'
 export * from './placement'

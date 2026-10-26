@@ -2,7 +2,7 @@
 // Docs: https://pris.ly/d/prisma-schema
 //
 // The connection URL is not set here: Prisma 7 reads it from prisma7.config.ts.
-// Models: User, Session (KAN-67) and Placement (KAN-23).
+// Models: User, Session (KAN-67), Placement (KAN-23) and Inquiry (KAN-35).
 
 generator client {
   provider = "prisma-client"
@@ -20,14 +20,16 @@ enum Role {
 }
 
 model User {
-  id           String      @id @default(uuid())
-  email        String      @unique // stored trimmed and lowercased
-  passwordHash String
-  role         Role        @default(CLIENT)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  placements   Placement[]
-  sessions     Session[]
+  id              String      @id @default(uuid())
+  email           String      @unique // stored trimmed and lowercased
+  passwordHash    String
+  role            Role        @default(CLIENT)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  placements      Placement[]
+  sessions        Session[]
+  clientInquiries Inquiry[]   @relation("ClientInquiries")
+  vendorInquiries Inquiry[]   @relation("VendorInquiries")
 }
 
 model Session {
@@ -72,6 +74,7 @@ model Placement {
   photos        String[]        @default([])
   vendorId      String
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  inquiries     Inquiry[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -79,4 +82,36 @@ model Placement {
   @@index([status])
   @@index([city])
   @@index([latitude, longitude])
+}
+
+enum InquiryStatus {
+  NEW
+  READ
+  RESPONDED
+  CLOSED
+}
+
+model Inquiry {
+  id               String        @id @default(uuid())
+  placementId      String
+  placement        Placement     @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  clientId         String
+  client           User          @relation("ClientInquiries", fields: [clientId], references: [id], onDelete: Cascade)
+  vendorId         String        // denormalised from placement.vendorId at insert time
+  vendor           User          @relation("VendorInquiries", fields: [vendorId], references: [id], onDelete: Cascade)
+  status           InquiryStatus @default(NEW)
+  message          String
+  contactName      String
+  contactPhone     String        // E.164, +998XXXXXXXXX
+  contactEmail     String
+  desiredStartDate DateTime?     // date only; the time component is unused
+  durationMonths   Int?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Serves the client history list (KAN-9), newest-first for one client.
+  @@index([clientId, createdAt])
+  // Serves the vendor inbox counting unread (KAN-15).
+  @@index([vendorId, status])
+  @@index([placementId])
 }

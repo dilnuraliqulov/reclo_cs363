@@ -5,6 +5,8 @@ import express, { type ErrorRequestHandler, type Express } from 'express'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import { createInquiryRouter } from './inquiries/routes'
+import type { InquiryStore } from './inquiries/store'
 import { createPlacementRouter } from './placements/routes'
 import type { PlacementStore } from './placements/store'
 
@@ -15,12 +17,16 @@ export interface AppDependencies {
   authStore: AuthStore
   /** Placements persistence. */
   placementStore?: PlacementStore
+  /** Inquiries persistence. */
+  inquiryStore?: InquiryStore
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
   corsOrigin?: string
   /** Clock, injectable for session expiry tests. */
   now?: () => Date
   /** Max register + login requests per IP per 15 minutes. Defaults to 20. */
   authRateLimitMax?: number
+  /** Max inquiry submissions per IP per 15 minutes. Defaults to 20. */
+  inquiryRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
 }
@@ -29,9 +35,11 @@ export function createApp({
   checkDatabase,
   authStore,
   placementStore,
+  inquiryStore,
   corsOrigin,
   now = () => new Date(),
   authRateLimitMax = 20,
+  inquiryRateLimitMax = 20,
   secureCookies = false,
 }: AppDependencies): Express {
   const app = express()
@@ -66,6 +74,18 @@ export function createApp({
 
   if (placementStore) {
     app.use('/api/placements', createPlacementRouter({ store: placementStore }))
+  }
+
+  if (inquiryStore) {
+    app.use(
+      '/api/inquiries',
+      createInquiryRouter({
+        store: inquiryStore,
+        requireAuth,
+        now,
+        rateLimitMax: inquiryRateLimitMax,
+      }),
+    )
   }
 
   // Express identifies error handlers by their four parameters, so `next` must stay.
