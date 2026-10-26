@@ -30,8 +30,6 @@
 enum PlacementType {
   BILLBOARD
   LED_SCREEN
-  WALL_MURAL
-  CITY_FORMAT
 }
 
 enum PlacementStatus {
@@ -55,6 +53,8 @@ model Placement {
   width         Float?          // Width in meters
   height        Float?          // Height in meters
   lighting      Boolean         @default(false)
+  ledDurationSeconds Int?
+  ledPlaysPerDay Int?
   photos        String[]        @default([])
   vendorId      String
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -74,7 +74,7 @@ The composite index `@@index([latitude, longitude])` supports fast bounding-box 
 ## Shared Zod schemas (`packages/shared/src/placement.ts`)
 
 ```ts
-placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT'])
+placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN'])
 placementStatusSchema = z.enum(['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED'])
 
 mapBoundsQuerySchema = z.object({
@@ -86,6 +86,8 @@ mapBoundsQuerySchema = z.object({
   city: z.string().trim().optional(),
   minPrice: z.coerce.number().int().nonnegative().optional(),
   maxPrice: z.coerce.number().int().positive().optional(),
+  ledDurationSeconds: z.coerce.number().int().positive().optional(),
+  ledPlaysPerDay: z.coerce.number().int().positive().optional(),
 })
 
 placementMarkerSchema = z.object({
@@ -112,6 +114,8 @@ placementDetailSchema = placementMarkerSchema.extend({
   height: z.number().nullable(),
   lighting: z.boolean(),
   photos: z.array(z.string().url()),
+  ledDurationSeconds: z.number().int().positive().nullable(),
+  ledPlaysPerDay: z.number().int().positive().nullable(),
   vendorId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -32,10 +32,6 @@ export function formatPlacementType(type: PlacementType): string {
       return 'Billboard'
     case 'LED_SCREEN':
       return 'LED Screen'
-    case 'WALL_MURAL':
-      return 'Wall Mural'
-    case 'CITY_FORMAT':
-      return 'City Format'
     default:
       return type
   }
@@ -58,18 +54,6 @@ export function getPlacementTypeColor(type: PlacementType): {
         bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
         text: 'text-emerald-700 dark:text-emerald-400',
         dot: 'bg-emerald-500',
-      }
-    case 'WALL_MURAL':
-      return {
-        bg: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300',
-        text: 'text-purple-700 dark:text-purple-400',
-        dot: 'bg-purple-500',
-      }
-    case 'CITY_FORMAT':
-      return {
-        bg: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
-        text: 'text-amber-700 dark:text-amber-400',
-        dot: 'bg-amber-500',
       }
   }
 }

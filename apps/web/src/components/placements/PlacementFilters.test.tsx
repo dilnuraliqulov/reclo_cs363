@@ -9,6 +9,8 @@ const emptyFilters: PlacementFilterState = {
   city: '',
   minPrice: '',
   maxPrice: '',
+  ledDurationSeconds: '',
+  ledPlaysPerDay: '',
 }
 
 /** Drives the controlled component the way the discovery page does. */
@@ -21,7 +23,12 @@ function Harness({
 }) {
   const [filters, setFilters] = useState(initial)
   const hasActiveFilters = Boolean(
-    filters.type || filters.city.trim() || filters.minPrice.trim() || filters.maxPrice.trim(),
+    filters.type ||
+      filters.city.trim() ||
+      filters.minPrice.trim() ||
+      filters.maxPrice.trim() ||
+      filters.ledDurationSeconds.trim() ||
+      filters.ledPlaysPerDay.trim(),
   )
 
   return (
@@ -45,14 +52,14 @@ function readState(): PlacementFilterState {
 }
 
 describe('PlacementFilters', () => {
-  it('offers a pill for every placement type plus All Types', () => {
+  it('offers static placement type pills plus All Types', () => {
     render(<Harness />)
 
     expect(screen.getByRole('button', { name: 'All Types' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Billboard' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'LED Screen' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Wall Mural' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'City Format' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Wall Mural' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'City Format' })).not.toBeInTheDocument()
   })
 
   it('selects a type when its pill is clicked', async () => {
@@ -128,7 +135,14 @@ describe('PlacementFilters', () => {
     const user = userEvent.setup()
     render(
       <Harness
-        initial={{ type: 'BILLBOARD', city: 'Tashkent', minPrice: '100', maxPrice: '900' }}
+        initial={{
+          type: 'BILLBOARD',
+          city: 'Tashkent',
+          minPrice: '100',
+          maxPrice: '900',
+          ledDurationSeconds: '',
+          ledPlaysPerDay: '',
+        }}
         onReset={onReset}
       />,
     )
@@ -137,5 +151,35 @@ describe('PlacementFilters', () => {
 
     expect(onReset).toHaveBeenCalled()
     expect(readState()).toEqual(emptyFilters)
+  })
+
+  it('shows LED-specific fields only when LED type is selected', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+
+    expect(screen.queryByPlaceholderText('LED duration (sec)')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('LED plays/day')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'LED Screen' }))
+
+    expect(screen.getByPlaceholderText('LED duration (sec)')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('LED plays/day')).toBeInTheDocument()
+  })
+
+  it('captures LED-specific filters and clears them when switching type', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial={{ ...emptyFilters, type: 'LED_SCREEN' }} />)
+
+    await user.type(screen.getByPlaceholderText('LED duration (sec)'), '15')
+    await user.type(screen.getByPlaceholderText('LED plays/day'), '120')
+
+    expect(readState().ledDurationSeconds).toBe('15')
+    expect(readState().ledPlaysPerDay).toBe('120')
+
+    await user.click(screen.getByRole('button', { name: 'Billboard' }))
+
+    expect(readState().type).toBe('BILLBOARD')
+    expect(readState().ledDurationSeconds).toBe('')
+    expect(readState().ledPlaysPerDay).toBe('')
   })
 })
