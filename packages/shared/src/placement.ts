@@ -6,6 +6,9 @@ export type PlacementType = z.infer<typeof placementTypeSchema>
 export const placementStatusSchema = z.enum(['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED'])
 export type PlacementStatus = z.infer<typeof placementStatusSchema>
 
+export const placementTierSchema = z.enum(['BRONZE', 'SILVER', 'GOLD'])
+export type PlacementTier = z.infer<typeof placementTierSchema>
+
 export const mapBoundsQuerySchema = z
   .object({
     minLat: z.coerce.number().min(-90).max(90),
@@ -48,6 +51,7 @@ export const mapMarkersResponseSchema = z.object({
 export type MapMarkersResponse = z.infer<typeof mapMarkersResponseSchema>
 
 export const placementDetailSchema = placementMarkerSchema.extend({
+  tier: placementTierSchema,
   description: z.string().nullable(),
   width: z.number().nullable(),
   height: z.number().nullable(),

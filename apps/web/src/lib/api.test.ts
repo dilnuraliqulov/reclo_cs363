@@ -1,6 +1,6 @@
 import type { MapBoundsQuery } from '@reclo/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchPlacementMarkers } from './api'
+import { fetchPlacementDetail, fetchPlacementMarkers } from './api'
 
 const bounds: MapBoundsQuery = {
   minLat: 41.0,
@@ -22,6 +22,19 @@ const validMarker = {
   photo: 'https://example.com/photo.jpg',
 }
 
+const validDetail = {
+  ...validMarker,
+  tier: 'SILVER',
+  description: 'High traffic road-facing placement',
+  width: 6,
+  height: 3,
+  lighting: true,
+  photos: ['https://example.com/photo.jpg', 'https://example.com/photo-2.jpg'],
+  vendorId: 'vendor-123',
+  createdAt: '2026-10-10T10:00:00.000Z',
+  updatedAt: '2026-10-12T15:00:00.000Z',
+}
+
 const fetchMock = vi.fn()
 
 function respondWith(body: unknown, init?: { ok?: boolean; status?: number }) {
@@ -40,6 +53,50 @@ describe('fetchPlacementMarkers', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockReset()
+  })
+
+  describe('fetchPlacementDetail', () => {
+    const placementId = validMarker.id
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', fetchMock)
+      fetchMock.mockReset()
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('requests the placement detail endpoint', async () => {
+      respondWith(validDetail)
+
+      const detail = await fetchPlacementDetail(placementId)
+
+      const url = requestedUrl()
+      expect(url.pathname).toBe(`/api/placements/${placementId}`)
+      expect(detail.tier).toBe('SILVER')
+      expect(detail.photos).toHaveLength(2)
+    })
+
+    it('surfaces the API error message when the response is not ok', async () => {
+      respondWith({ error: 'Placement not found' }, { ok: false, status: 404 })
+
+      await expect(fetchPlacementDetail(placementId)).rejects.toThrow('Placement not found')
+    })
+
+    it('falls back to the status code when the error body has no message', async () => {
+      respondWith({}, { ok: false, status: 500 })
+
+      await expect(fetchPlacementDetail(placementId)).rejects.toThrow(
+        /Failed to fetch placement detail \(500\)/,
+      )
+    })
+
+    it('rejects a response whose payload does not match the shared schema', async () => {
+      respondWith({ ...validDetail, tier: 'DIAMOND' })
+
+      await expect(fetchPlacementDetail(placementId)).rejects.toThrow()
+    })
   })
 
   afterEach(() => {

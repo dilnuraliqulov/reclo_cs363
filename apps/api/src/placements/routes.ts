@@ -1,5 +1,11 @@
-import { type ApiError, mapBoundsQuerySchema, type MapMarkersResponse } from '@reclo/shared'
+import {
+  type ApiError,
+  mapBoundsQuerySchema,
+  type MapMarkersResponse,
+  type PlacementDetail,
+} from '@reclo/shared'
 import { Router } from 'express'
+import { z } from 'zod'
 import type { PlacementStore } from './store'
 
 export function createPlacementRouter({ store }: { store: PlacementStore }): Router {
@@ -32,6 +38,28 @@ export function createPlacementRouter({ store }: { store: PlacementStore }): Rou
     } catch (error) {
       console.error('Failed to query map markers', error)
       res.status(500).json({ error: 'Failed to query map markers' } satisfies ApiError)
+    }
+  })
+
+  router.get('/:id', async (req, res) => {
+    const parsedId = z.string().uuid().safeParse(req.params.id)
+    if (!parsedId.success) {
+      res.status(400).json({ error: 'Invalid placement id' } satisfies ApiError)
+      return
+    }
+
+    try {
+      const placement = await store.findPlacementDetail(parsedId.data)
+
+      if (!placement) {
+        res.status(404).json({ error: 'Placement not found' } satisfies ApiError)
+        return
+      }
+
+      res.json(placement satisfies PlacementDetail)
+    } catch (error) {
+      console.error('Failed to fetch placement detail', error)
+      res.status(500).json({ error: 'Failed to fetch placement detail' } satisfies ApiError)
     }
   })
 

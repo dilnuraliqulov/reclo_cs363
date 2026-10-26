@@ -24,9 +24,10 @@ const row = {
 }
 
 const findMany = vi.fn()
+const findFirst = vi.fn()
 
 function createStore() {
-  const prisma = { placement: { findMany } } as unknown as PrismaClient
+  const prisma = { placement: { findMany, findFirst } } as unknown as PrismaClient
   return new PrismaPlacementStore(prisma)
 }
 
@@ -37,6 +38,7 @@ function lastWhere() {
 describe('PrismaPlacementStore.findMapMarkers', () => {
   beforeEach(() => {
     findMany.mockReset()
+    findFirst.mockReset()
     findMany.mockResolvedValue([row])
   })
 
@@ -45,6 +47,115 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
 
     // Pending, inactive and archived placements must never reach clients.
     expect(lastWhere().status).toBe('ACTIVE')
+  })
+
+  describe('PrismaPlacementStore.findPlacementDetail', () => {
+    beforeEach(() => {
+      findMany.mockReset()
+      findFirst.mockReset()
+      findFirst.mockResolvedValue({
+        ...row,
+        description: 'High traffic road-facing placement',
+        width: 6,
+        height: 3,
+        lighting: true,
+        vendorId: 'vendor-123',
+        createdAt: new Date('2026-10-10T10:00:00.000Z'),
+        updatedAt: new Date('2026-10-12T15:00:00.000Z'),
+      })
+    })
+
+    it('queries active placement details by id', async () => {
+      await createStore().findPlacementDetail(row.id)
+
+      expect(findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: row.id, status: 'ACTIVE' },
+        }),
+      )
+    })
+
+    it('returns null when no placement matches', async () => {
+      findFirst.mockResolvedValue(null)
+
+      await expect(createStore().findPlacementDetail(row.id)).resolves.toBeNull()
+    })
+
+    it('returns all detail fields and the first photo thumbnail', async () => {
+      const detail = await createStore().findPlacementDetail(row.id)
+
+      expect(detail).toMatchObject({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        status: row.status,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        address: row.address,
+        city: row.city,
+        pricePerMonth: row.pricePerMonth,
+        photo: 'https://example.com/one.jpg',
+        photos: row.photos,
+        tier: 'SILVER',
+        vendorId: 'vendor-123',
+      })
+      expect(detail?.createdAt).toBe('2026-10-10T10:00:00.000Z')
+      expect(detail?.updatedAt).toBe('2026-10-12T15:00:00.000Z')
+    })
+
+    it('omits preview photo when placement has no photos', async () => {
+      findFirst.mockResolvedValue({
+        ...row,
+        photos: [],
+        description: null,
+        width: null,
+        height: null,
+        lighting: false,
+        vendorId: 'vendor-123',
+        createdAt: new Date('2026-10-10T10:00:00.000Z'),
+        updatedAt: new Date('2026-10-12T15:00:00.000Z'),
+      })
+
+      const detail = await createStore().findPlacementDetail(row.id)
+
+      expect(detail).not.toHaveProperty('photo')
+      expect(detail?.photos).toEqual([])
+      expect(detail?.tier).toBe('SILVER')
+    })
+
+    it('assigns BRONZE tier to lower priced placements', async () => {
+      findFirst.mockResolvedValue({
+        ...row,
+        pricePerMonth: 4_999_999,
+        description: null,
+        width: null,
+        height: null,
+        lighting: false,
+        vendorId: 'vendor-123',
+        createdAt: new Date('2026-10-10T10:00:00.000Z'),
+        updatedAt: new Date('2026-10-12T15:00:00.000Z'),
+      })
+
+      const detail = await createStore().findPlacementDetail(row.id)
+      expect(detail?.tier).toBe('BRONZE')
+    })
+
+    it('assigns GOLD tier to higher priced placements', async () => {
+      findFirst.mockResolvedValue({
+        ...row,
+        pricePerMonth: 10_000_000,
+        description: null,
+        width: null,
+        height: null,
+        lighting: false,
+        vendorId: 'vendor-123',
+        createdAt: new Date('2026-10-10T10:00:00.000Z'),
+        updatedAt: new Date('2026-10-12T15:00:00.000Z'),
+      })
+
+      const detail = await createStore().findPlacementDetail(row.id)
+      expect(detail?.tier).toBe('GOLD')
+    })
   })
 
   it('constrains the query to the viewport bounding box', async () => {
