@@ -2,6 +2,7 @@ import type { MapBoundsQuery, PlacementDetail, PlacementMarker } from '@reclo/sh
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../app'
+import { createMemoryAuthStore } from '../test-helpers'
 import type { PlacementStore } from './store'
 
 const sampleMarker: PlacementMarker = {
@@ -39,6 +40,7 @@ function createTestApp(storeOverride?: Partial<PlacementStore>) {
 
   const app = createApp({
     checkDatabase: vi.fn().mockResolvedValue(undefined),
+    authStore: createMemoryAuthStore().store,
     placementStore: store,
   })
 
