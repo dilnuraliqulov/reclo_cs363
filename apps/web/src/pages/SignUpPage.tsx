@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
+import { useNextPath } from '@/auth/useNextPath'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -34,6 +35,10 @@ const copy = {
 export function SignUpPage() {
   const { setUser } = useAuth()
   const navigate = useNavigate()
+  // Set when the client was sent here from a placement, so they land back on it.
+  const next = useNextPath()
+  // Carried across the pair, but only when there is somewhere to return to.
+  const otherPath = next === '/' ? '/sign-in' : `/sign-in?next=${encodeURIComponent(next)}`
   const form = useForm<RegisterRequest>({
     resolver: zodResolver(registerRequestSchema),
     defaultValues: { email: '', password: '' },
@@ -43,7 +48,7 @@ export function SignUpPage() {
     mutationFn: register,
     onSuccess: (user) => {
       setUser(user)
-      void navigate('/', { replace: true })
+      void navigate(next, { replace: true })
     },
     onError: (error) => {
       if (error instanceof ApiRequestError && error.fieldErrors) {
@@ -112,7 +117,7 @@ export function SignUpPage() {
         </CardContent>
         <CardFooter className="justify-center gap-1 text-sm text-muted-foreground">
           {copy.haveAccount}
-          <Link to="/sign-in" className="font-medium text-foreground underline underline-offset-4">
+          <Link to={otherPath} className="font-medium text-foreground underline underline-offset-4">
             {copy.signIn}
           </Link>
         </CardFooter>

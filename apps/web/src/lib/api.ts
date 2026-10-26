@@ -2,10 +2,13 @@ import {
   apiErrorSchema,
   authResponseSchema,
   healthResponseSchema,
+  inquiryResponseSchema,
   mapMarkersResponseSchema,
   placementDetailSchema,
   type ApiError,
+  type CreateInquiryRequest,
   type HealthResponse,
+  type Inquiry,
   type LoginRequest,
   type MapBoundsQuery,
   type MapMarkersResponse,
@@ -20,11 +23,19 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 export class ApiRequestError extends Error {
   readonly status: number
   readonly fieldErrors: ApiError['fieldErrors']
+  /** The raw error body, for routes that answer with more than `error` and `fieldErrors`. */
+  readonly body: unknown
 
-  constructor(status: number, message: string, fieldErrors?: ApiError['fieldErrors']) {
+  constructor(
+    status: number,
+    message: string,
+    fieldErrors?: ApiError['fieldErrors'],
+    body?: unknown,
+  ) {
     super(message)
     this.status = status
     this.fieldErrors = fieldErrors
+    this.body = body
   }
 }
 
@@ -41,11 +52,13 @@ async function request(path: string, init: { method: string; body?: unknown }): 
     throw new ApiRequestError(0, 'Cannot reach the server. Check your connection and try again.')
   }
   if (!response.ok) {
-    const parsed = apiErrorSchema.safeParse(await response.json().catch(() => null))
+    const body = await response.json().catch(() => null)
+    const parsed = apiErrorSchema.safeParse(body)
     throw new ApiRequestError(
       response.status,
       parsed.success ? parsed.data.error : 'Something went wrong. Please try again.',
       parsed.success ? parsed.data.fieldErrors : undefined,
+      body,
     )
   }
   return response
@@ -109,6 +122,11 @@ export const login = (input: LoginRequest) => requestUser('/api/auth/login', 'PO
 
 export async function logout(): Promise<void> {
   await request('/api/auth/logout', { method: 'POST' })
+}
+
+export async function createInquiry(input: CreateInquiryRequest): Promise<Inquiry> {
+  const response = await request('/api/inquiries', { method: 'POST', body: input })
+  return inquiryResponseSchema.parse(await response.json()).inquiry
 }
 
 /** The signed-in user, or null when there is no valid session. */

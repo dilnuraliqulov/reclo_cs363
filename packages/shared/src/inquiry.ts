@@ -45,6 +45,11 @@ export const createInquiryRequestSchema = z.object({
   durationMonths: z.coerce.number().int().min(1).max(DURATION_MAX_MONTHS).optional(),
 })
 export type CreateInquiryRequest = z.infer<typeof createInquiryRequestSchema>
+/**
+ * What a form holds before validation: `durationMonths` is coerced and `contactPhone` normalised,
+ * so the input and output types differ. Web forms are typed against this.
+ */
+export type CreateInquiryFormValues = z.input<typeof createInquiryRequestSchema>
 
 /** The inquiry as its sender sees it. The vendor's identity is deliberately absent. */
 export const inquirySchema = z.object({
