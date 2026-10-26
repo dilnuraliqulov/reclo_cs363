@@ -3,6 +3,7 @@ import type { MapBoundsQuery, PlacementMarker } from '@reclo/shared'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Activity, Layers, List, Map as MapIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { AuthControls } from '@/components/auth/AuthControls'
 import { Button } from '@/components/ui/button'
 import { PlacementMap, type MapBounds } from '@/components/map/PlacementMap'
 import { PlacementDetailModal } from '@/components/placements/PlacementDetailModal'
@@ -180,6 +181,8 @@ export function PlacementsDiscoveryPage() {
             <Activity className="w-3.5 h-3.5 mr-1 text-emerald-600" />
             {healthCheck.isPending ? 'Checking…' : 'Check API'}
           </Button>
+
+          <AuthControls />
         </div>
       </header>
 

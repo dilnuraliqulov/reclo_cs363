@@ -1,25 +1,46 @@
 import type { ApiError, HealthResponse } from '@reclo/shared'
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { type ErrorRequestHandler, type Express } from 'express'
+import { createRequireAuth } from './auth/middleware'
+import { createAuthRouter } from './auth/routes'
+import type { AuthStore } from './auth/store'
 import { createPlacementRouter } from './placements/routes'
 import type { PlacementStore } from './placements/store'
 
 export interface AppDependencies {
   /** Rejects when the database cannot be reached. */
   checkDatabase: () => Promise<void>
+  /** Users and sessions. */
+  authStore: AuthStore
   /** Placements persistence. */
   placementStore?: PlacementStore
-  /** Origin allowed by CORS. Omit to disable CORS headers. */
+  /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
   corsOrigin?: string
+  /** Clock, injectable for session expiry tests. */
+  now?: () => Date
+  /** Max register + login requests per IP per 15 minutes. Defaults to 20. */
+  authRateLimitMax?: number
+  /** Set the Secure flag on the session cookie (production). */
+  secureCookies?: boolean
 }
 
-export function createApp({ checkDatabase, placementStore, corsOrigin }: AppDependencies): Express {
+export function createApp({
+  checkDatabase,
+  authStore,
+  placementStore,
+  corsOrigin,
+  now = () => new Date(),
+  authRateLimitMax = 20,
+  secureCookies = false,
+}: AppDependencies): Express {
   const app = express()
 
   if (corsOrigin) {
-    app.use(cors({ origin: corsOrigin }))
+    app.use(cors({ origin: corsOrigin, credentials: true }))
   }
   app.use(express.json())
+  app.use(cookieParser())
 
   app.get('/health', async (_req, res) => {
     try {
@@ -31,11 +52,23 @@ export function createApp({ checkDatabase, placementStore, corsOrigin }: AppDepe
     }
   })
 
+  const requireAuth = createRequireAuth(authStore, now)
+  app.use(
+    '/api/auth',
+    createAuthRouter({
+      store: authStore,
+      requireAuth,
+      now,
+      rateLimitMax: authRateLimitMax,
+      secureCookies,
+    }),
+  )
+
   if (placementStore) {
     app.use('/api/placements', createPlacementRouter({ store: placementStore }))
   }
 
-  // Error handler
+  // Express identifies error handlers by their four parameters, so `next` must stay.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error?.type === 'entity.parse.failed') {

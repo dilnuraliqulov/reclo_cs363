@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
+import { AuthContext } from '@/auth/useAuth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlacementsDiscoveryPage } from './PlacementsDiscoveryPage'
 
@@ -54,7 +55,11 @@ function renderWithProviders() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <PlacementsDiscoveryPage />
+        <AuthContext.Provider
+          value={{ user: null, isLoading: false, setUser: () => {}, signOut: async () => {} }}
+        >
+          <PlacementsDiscoveryPage />
+        </AuthContext.Provider>
       </MemoryRouter>
     </QueryClientProvider>,
   )
