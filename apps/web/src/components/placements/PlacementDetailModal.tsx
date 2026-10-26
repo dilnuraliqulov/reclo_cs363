@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { Calendar, Compass, DollarSign, ImageOff, MapPin, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,31 +42,21 @@ export function PlacementDetailModal({
   open,
   onOpenChange,
 }: PlacementDetailModalProps) {
-  if (!marker) return null
-
-  const typeColor = getPlacementTypeColor(detail?.type ?? marker.type)
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
-  const photos = useMemo(
-    () =>
-      detail?.photos.length
-        ? detail.photos
-        : marker.photo
-          ? [marker.photo]
-          : [],
-    [detail?.photos, marker.photo],
-  )
-  const selectedPhoto = photos[selectedPhotoIndex]
-
-  useEffect(() => {
-    setSelectedPhotoIndex(0)
-  }, [marker.id, detail?.id, open])
+  if (!marker) return null
+  const typeColor = getPlacementTypeColor(detail?.type ?? marker.type)
+  const photos = detail?.photos.length ? detail.photos : marker.photo ? [marker.photo] : []
+  const safeSelectedPhotoIndex = selectedPhotoIndex < photos.length ? selectedPhotoIndex : 0
+  const selectedPhoto = photos[safeSelectedPhotoIndex]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <Badge className={typeColor.bg}>{formatPlacementType(detail?.type ?? marker.type)}</Badge>
+            <Badge className={typeColor.bg}>
+              {formatPlacementType(detail?.type ?? marker.type)}
+            </Badge>
             <Badge variant="outline" className="text-emerald-600 border-emerald-300">
               {detail?.status ?? marker.status}
             </Badge>
@@ -82,7 +72,11 @@ export function PlacementDetailModal({
         {/* Image Preview */}
         <div className="relative aspect-video w-full rounded-md overflow-hidden bg-muted flex items-center justify-center my-2">
           {selectedPhoto ? (
-            <img src={selectedPhoto} alt={detail?.title ?? marker.title} className="w-full h-full object-cover" />
+            <img
+              src={selectedPhoto}
+              alt={detail?.title ?? marker.title}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="flex flex-col items-center justify-center text-muted-foreground p-4">
               <ImageOff className="w-8 h-8 mb-2 opacity-50" />
@@ -98,10 +92,14 @@ export function PlacementDetailModal({
                 type="button"
                 onClick={() => setSelectedPhotoIndex(index)}
                 className="rounded-md overflow-hidden border border-border/70 data-[active=true]:ring-2 data-[active=true]:ring-primary"
-                data-active={selectedPhotoIndex === index}
+                data-active={safeSelectedPhotoIndex === index}
                 aria-label={`Show photo ${index + 1}`}
               >
-                <img src={photo} alt={`Placement photo ${index + 1}`} className="w-14 h-14 object-cover" />
+                <img
+                  src={photo}
+                  alt={`Placement photo ${index + 1}`}
+                  className="w-14 h-14 object-cover"
+                />
               </button>
             ))}
           </div>

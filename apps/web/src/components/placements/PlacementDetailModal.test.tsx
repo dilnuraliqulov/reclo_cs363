@@ -48,7 +48,9 @@ describe('PlacementDetailModal', () => {
   })
 
   it('stays closed when open is false', () => {
-    render(<PlacementDetailModal marker={marker} detail={null} open={false} onOpenChange={vi.fn()} />)
+    render(
+      <PlacementDetailModal marker={marker} detail={null} open={false} onOpenChange={vi.fn()} />,
+    )
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -87,7 +89,12 @@ describe('PlacementDetailModal', () => {
 
   it('falls back to a placeholder without a photo', () => {
     render(
-      <PlacementDetailModal marker={withoutPhoto(marker)} detail={null} open onOpenChange={vi.fn()} />,
+      <PlacementDetailModal
+        marker={withoutPhoto(marker)}
+        detail={null}
+        open
+        onOpenChange={vi.fn()}
+      />,
     )
 
     expect(screen.getByText('No preview photo available')).toBeInTheDocument()
