@@ -33,6 +33,10 @@ describe('useNextPath', () => {
     )
   })
 
+  it('normalizes a harmless dot segment', () => {
+    expect(resolve(`/sign-in?next=${encodeURIComponent('/./placements')}`)).toBe('/placements')
+  })
+
   it.each([
     ['an absolute URL', 'https://evil.example/phish'],
     ['a protocol-relative URL', '//evil.example'],
@@ -42,6 +46,11 @@ describe('useNextPath', () => {
     ['a tab-split host', '/\t/evil.example'],
     ['a scheme-relative javascript URL', 'javascript:alert(1)'],
     ['a path that does not start with a slash', 'placements'],
+    // These three pass a check on the input but collapse to "//evil.example" once parsed, so the
+    // returned path has to be checked too.
+    ['a dot segment hiding an authority', '/.//evil.example'],
+    ['a percent-encoded dot segment', '/%2e//evil.example'],
+    ['parent segments climbing past the root', '/a/../..//evil.example'],
   ])('refuses %s', (_label, next) => {
     expect(resolve(`/sign-in?next=${encodeURIComponent(next)}`)).toBe('/')
   })
