@@ -9,11 +9,13 @@ import { PlacementsDiscoveryPage } from './PlacementsDiscoveryPage'
 
 vi.mock('@/lib/api', () => ({
   fetchPlacementMarkers: vi.fn(),
+  fetchPlacementDetail: vi.fn(),
   fetchHealth: vi.fn(),
 }))
 
-const { fetchPlacementMarkers } = await import('@/lib/api')
+const { fetchPlacementMarkers, fetchPlacementDetail } = await import('@/lib/api')
 const fetchMarkersMock = vi.mocked(fetchPlacementMarkers)
+const fetchPlacementDetailMock = vi.mocked(fetchPlacementDetail)
 
 const billboard: PlacementMarker = {
   id: 'b1e0696a-54c3-4d40-84c4-f2a89326e680',
@@ -62,6 +64,18 @@ describe('PlacementsDiscoveryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockMarkers([billboard, ledScreen])
+    fetchPlacementDetailMock.mockResolvedValue({
+      ...billboard,
+      tier: 'SILVER',
+      description: null,
+      width: null,
+      height: null,
+      lighting: false,
+      photos: billboard.photo ? [billboard.photo] : [],
+      vendorId: 'vendor-123',
+      createdAt: '2026-10-10T10:00:00.000Z',
+      updatedAt: '2026-10-12T15:00:00.000Z',
+    })
   })
 
   it('renders the Reclo header and map container', () => {

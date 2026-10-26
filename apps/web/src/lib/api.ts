@@ -1,8 +1,10 @@
 import {
   healthResponseSchema,
   mapMarkersResponseSchema,
+  placementDetailSchema,
   type HealthResponse,
   type MapBoundsQuery,
+  type PlacementDetail,
   type MapMarkersResponse,
 } from '@reclo/shared'
 
@@ -39,4 +41,19 @@ export async function fetchPlacementMarkers(params: MapBoundsQuery): Promise<Map
   }
   const data = await response.json()
   return mapMarkersResponseSchema.parse(data)
+}
+
+export async function fetchPlacementDetail(id: string): Promise<PlacementDetail> {
+  const response = await fetch(`${API_URL}/api/placements/${id}`)
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}))
+    throw new Error(
+      typeof errorBody.error === 'string'
+        ? errorBody.error
+        : `Failed to fetch placement detail (${response.status})`,
+    )
+  }
+
+  const data = await response.json()
+  return placementDetailSchema.parse(data)
 }

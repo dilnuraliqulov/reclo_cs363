@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { MapBoundsQuery, PlacementMarker } from '@reclo/shared'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Activity, Layers, List, Map as MapIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import {
 } from '@/components/placements/PlacementFilters'
 import { PlacementList } from '@/components/placements/PlacementList'
 import { usePlacementMarkers } from '@/hooks/usePlacementMarkers'
-import { fetchHealth } from '@/lib/api'
+import { fetchHealth, fetchPlacementDetail } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 export function PlacementsDiscoveryPage() {
@@ -118,6 +118,16 @@ export function PlacementsDiscoveryPage() {
     setDetailMarker(marker)
     setIsDetailOpen(true)
   }, [])
+
+  const detailQuery = useQuery({
+    queryKey: ['placements', 'detail', detailMarker?.id],
+    queryFn: () => {
+      if (!detailMarker) throw new Error('Placement id is required')
+      return fetchPlacementDetail(detailMarker.id)
+    },
+    enabled: Boolean(detailMarker && isDetailOpen),
+    staleTime: 1000 * 30,
+  })
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
@@ -228,6 +238,9 @@ export function PlacementsDiscoveryPage() {
       {/* Detail Modal */}
       <PlacementDetailModal
         marker={detailMarker}
+        detail={detailQuery.data ?? null}
+        isDetailLoading={detailQuery.isLoading}
+        detailError={detailQuery.error ?? null}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
       />
