@@ -1,4 +1,4 @@
-import type { MapBoundsQuery, PlacementMarker } from '@reclo/shared'
+import type { MapBoundsQuery, PlacementDetail, PlacementMarker } from '@reclo/shared'
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../app'
@@ -17,9 +17,23 @@ const sampleMarker: PlacementMarker = {
   photo: 'https://example.com/photo.jpg',
 }
 
+const sampleDetail: PlacementDetail = {
+  ...sampleMarker,
+  tier: 'SILVER',
+  description: 'High traffic road-facing placement',
+  width: 6,
+  height: 3,
+  lighting: true,
+  photos: ['https://example.com/photo.jpg', 'https://example.com/photo-2.jpg'],
+  vendorId: 'vendor-123',
+  createdAt: '2026-10-10T10:00:00.000Z',
+  updatedAt: '2026-10-12T15:00:00.000Z',
+}
+
 function createTestApp(storeOverride?: Partial<PlacementStore>) {
   const store: PlacementStore = {
     findMapMarkers: vi.fn().mockResolvedValue([sampleMarker]),
+    findPlacementDetail: vi.fn().mockResolvedValue(sampleDetail),
     ...storeOverride,
   }
 
@@ -43,6 +57,52 @@ describe('GET /api/placements/map', () => {
     expect(res.body.fieldErrors).toHaveProperty('maxLat')
     expect(res.body.fieldErrors).toHaveProperty('minLng')
     expect(res.body.fieldErrors).toHaveProperty('maxLng')
+  })
+
+  describe('GET /api/placements/:id', () => {
+    it('returns 400 when the placement id is not a UUID', async () => {
+      const { app } = createTestApp()
+
+      const res = await request(app).get('/api/placements/not-a-uuid')
+
+      expect(res.status).toBe(400)
+      expect(res.body).toEqual({ error: 'Invalid placement id' })
+    })
+
+    it('returns 404 when the placement is not found', async () => {
+      const { app, store } = createTestApp({
+        findPlacementDetail: vi.fn().mockResolvedValue(null),
+      })
+
+      const res = await request(app).get(`/api/placements/${sampleMarker.id}`)
+
+      expect(res.status).toBe(404)
+      expect(res.body).toEqual({ error: 'Placement not found' })
+      expect(store.findPlacementDetail).toHaveBeenCalledWith(sampleMarker.id)
+    })
+
+    it('returns 200 with placement detail payload', async () => {
+      const { app, store } = createTestApp()
+
+      const res = await request(app).get(`/api/placements/${sampleMarker.id}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual(sampleDetail)
+      expect(store.findPlacementDetail).toHaveBeenCalledWith(sampleMarker.id)
+    })
+
+    it('returns 500 when store throws an unexpected error', async () => {
+      const { app } = createTestApp({
+        findPlacementDetail: vi.fn().mockRejectedValue(new Error('Database error')),
+      })
+
+      const res = await request(app).get(`/api/placements/${sampleMarker.id}`)
+
+      expect(res.status).toBe(500)
+      expect(res.body).toEqual({
+        error: 'Failed to fetch placement detail',
+      })
+    })
   })
 
   it('returns 400 when coordinates are out of valid range', async () => {
