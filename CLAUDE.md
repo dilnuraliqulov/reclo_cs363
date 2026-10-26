@@ -25,7 +25,8 @@ setup steps are in `README.md`.
 - **Validation**: define each Zod schema once in `packages/shared` and import it in both web (forms)
   and api (request validation). Derive types with `z.infer`.
 - **Branches and commits**: one Jira subtask = one branch named `KAN-<number>-short-description`.
-  Start every commit message with the issue key, e.g. `KAN-66: add user model`.
+  Start every commit message with the issue key, e.g. `KAN-66: add user model`. Reference the
+  mirrored GitHub issue in the PR description with `Closes #<number>` so merging closes it.
 - **Done means verified**: before calling a task done, run `pnpm lint`, `pnpm typecheck`, and
   `pnpm test`, and show their output.
 
