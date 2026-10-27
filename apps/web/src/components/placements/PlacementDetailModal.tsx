@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { Calendar, Compass, DollarSign, ImageOff, MapPin, Sparkles } from 'lucide-react'
-import { toast } from 'sonner'
+import { InquiryFormDialog } from '@/components/inquiries/InquiryFormDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,6 +43,7 @@ export function PlacementDetailModal({
   onOpenChange,
 }: PlacementDetailModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false)
   if (!marker) return null
   const typeColor = getPlacementTypeColor(detail?.type ?? marker.type)
   const photos = detail?.photos.length ? detail.photos : marker.photo ? [marker.photo] : []
@@ -145,17 +146,20 @@ export function PlacementDetailModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button
-            className="gap-1.5"
-            onClick={() => {
-              // The vendor inquiry flow lands with KAN-8 / KAN-34.
-              toast.info('Sending inquiries to vendors is coming soon.')
-            }}
-          >
+          <Button className="gap-1.5" onClick={() => setIsInquiryOpen(true)}>
             <Sparkles className="w-4 h-4" />
             Inquire / Reserve
           </Button>
         </DialogFooter>
+
+        {/* Stacks over this modal, so the client keeps the placement in view. */}
+        {isInquiryOpen && (
+          <InquiryFormDialog
+            placement={marker}
+            open={isInquiryOpen}
+            onOpenChange={setIsInquiryOpen}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

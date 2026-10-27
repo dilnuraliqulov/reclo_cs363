@@ -1,7 +1,10 @@
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+import { AuthProvider } from '@/auth/AuthProvider'
 import { PlacementDetailModal } from './PlacementDetailModal'
 
 const marker: PlacementMarker = {
@@ -133,14 +136,38 @@ describe('PlacementDetailModal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('tells the user the inquiry flow is not built yet', async () => {
+  it('opens the inquiry form from the Inquire button', async () => {
     const user = userEvent.setup()
-    render(<PlacementDetailModal marker={marker} detail={null} open onOpenChange={vi.fn()} />)
+    // Signed out, so the form shows its sign-in prompt; the submit path is covered in
+    // InquiryFormDialog.test.tsx.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: 'Not authenticated' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <MemoryRouter>
+          <AuthProvider>
+            <PlacementDetailModal marker={marker} detail={null} open onOpenChange={vi.fn()} />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
 
-    // KAN-8 / KAN-34 own the real flow; this must not throw or navigate.
+    expect(screen.queryByText('Send an inquiry')).not.toBeInTheDocument()
+
     await user.click(screen.getByRole('button', { name: /Inquire \/ Reserve/i }))
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(await screen.findByText('Send an inquiry')).toBeInTheDocument()
+    vi.unstubAllGlobals()
   })
 
   it('shows the tier badge and supports switching gallery photos', async () => {
