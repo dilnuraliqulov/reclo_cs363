@@ -90,6 +90,15 @@ function submittedBody(fetchMock: ReturnType<typeof stubApi>) {
   return JSON.parse(String(call[1]?.body))
 }
 
+/**
+ * userEvent waits between keystrokes by default, which makes typing a 40-character message slow
+ * enough to blow the 5s test timeout when the whole suite runs in parallel. The events are the
+ * same without the delay.
+ */
+function setupUser() {
+  return userEvent.setup({ delay: null })
+}
+
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
@@ -121,7 +130,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('shows validation messages instead of submitting an empty form', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const fetchMock = stubApi()
     renderDialog()
 
@@ -136,7 +145,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('rejects a non-Uzbek phone number', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     stubApi()
     renderDialog()
 
@@ -149,7 +158,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('submits normalized values once and closes on success', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const fetchMock = stubApi()
     const { onOpenChange } = renderDialog()
 
@@ -176,7 +185,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('names the earlier date and disables submit on a duplicate', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     stubApi({
       onPost: () =>
         json(409, {
@@ -199,7 +208,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('sends the optional campaign fields when they are filled in', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const fetchMock = stubApi()
     renderDialog()
 
@@ -220,7 +229,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('counts the message against its limit', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     stubApi()
     renderDialog()
 
@@ -232,7 +241,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('disables every input while the inquiry is in flight', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     let release: (() => void) | undefined
     stubApi({
       onPost: () =>
@@ -255,7 +264,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('swaps to the sign-in prompt when the session has expired', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     stubApi({ onPost: () => json(401, { error: 'Not authenticated' }) })
     renderDialog()
 
@@ -268,7 +277,7 @@ describe('InquiryFormDialog', () => {
   })
 
   it('maps server field errors onto their fields', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     stubApi({
       onPost: () =>
         json(400, {
