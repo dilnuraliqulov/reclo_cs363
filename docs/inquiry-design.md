@@ -235,7 +235,8 @@ announces only on approach to the limit, not on every keystroke.
 ## Out of scope
 
 - Vendor notification email on each new inquiry (KAN-17).
-- Client inquiry history page and its `GET /api/inquiries` route (KAN-9).
+- Client inquiry history page and its `GET /api/inquiries` route (KAN-9) — designed in
+  [`inquiry-history-design.md`](./inquiry-history-design.md).
 - Vendor inbox, status transitions, and the admin dispute view (KAN-15).
 - Multi-placement media-plan cart and checkout (KAN-7, KAN-18).
 - Term × duration pricing matrix and VAT (KAN-11): this form asks for a duration but quotes nothing.
