@@ -66,6 +66,11 @@ function createMemoryInquiryStore(seed: SeededInquiry[] = []) {
       return true
     },
 
+    // The history list is KAN-39's and has its own tests; this store exists to model the index.
+    async listClientInquiries() {
+      return []
+    },
+
     async createInquiry(input) {
       // What the partial unique index enforces: open rows are unique per client and placement,
       // with no regard for how old they are.

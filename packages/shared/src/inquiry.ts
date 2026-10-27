@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { apiErrorSchema } from './errors'
+import { placementTypeSchema } from './placement'
 
 export const inquiryStatusSchema = z.enum(['NEW', 'READ', 'RESPONDED', 'CLOSED'])
 export type InquiryStatus = z.infer<typeof inquiryStatusSchema>
@@ -77,3 +78,52 @@ export const inquiryConflictSchema = apiErrorSchema.extend({
   existingInquiryCreatedAt: z.string().optional(),
 })
 export type InquiryConflict = z.infer<typeof inquiryConflictSchema>
+
+export const INQUIRY_PAGE_SIZE = 20
+export const INQUIRY_PAGE_SIZE_MAX = 50
+
+/**
+ * The client history query. `limit` is coerced because it arrives as a query string, so as with
+ * `createInquiryRequestSchema` the input and output types differ.
+ *
+ * There is deliberately no `clientId`: the route reads it from the session, so one client's
+ * history is not reachable by guessing another's id. The admin dispute view (KAN-15) is a separate
+ * route with its own guard.
+ */
+export const inquiryHistoryQuerySchema = z.object({
+  status: inquiryStatusSchema.optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(INQUIRY_PAGE_SIZE_MAX).default(INQUIRY_PAGE_SIZE),
+})
+export type InquiryHistoryQuery = z.infer<typeof inquiryHistoryQuerySchema>
+
+/**
+ * The placement context carried on a history row, enough to render the list without a second
+ * fetch. `isViewable` is false once the placement is archived or inactive: the row still shows,
+ * because archiving a listing must not erase the client's record of what they sent, but it renders
+ * without a link.
+ */
+export const inquiryPlacementSummarySchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  city: z.string(),
+  type: placementTypeSchema,
+  isViewable: z.boolean(),
+})
+export type InquiryPlacementSummary = z.infer<typeof inquiryPlacementSummarySchema>
+
+/**
+ * Extends `inquirySchema` rather than redeclaring its fields, so the row the history shows and the
+ * row `POST /api/inquiries` returns cannot drift apart. `placement` is null only when the placement
+ * was hard-deleted.
+ */
+export const inquiryHistoryItemSchema = inquirySchema.extend({
+  placement: inquiryPlacementSummarySchema.nullable(),
+})
+export type InquiryHistoryItem = z.infer<typeof inquiryHistoryItemSchema>
+
+export const inquiryHistoryResponseSchema = z.object({
+  inquiries: z.array(inquiryHistoryItemSchema),
+  nextCursor: z.string().nullable(),
+})
+export type InquiryHistoryResponse = z.infer<typeof inquiryHistoryResponseSchema>

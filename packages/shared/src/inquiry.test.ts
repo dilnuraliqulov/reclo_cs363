@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   createInquiryRequestSchema,
   DURATION_MAX_MONTHS,
+  INQUIRY_PAGE_SIZE,
+  INQUIRY_PAGE_SIZE_MAX,
+  inquiryHistoryItemSchema,
+  inquiryHistoryQuerySchema,
   MESSAGE_MAX_LENGTH,
   MESSAGE_MIN_LENGTH,
   uzPhoneSchema,
@@ -239,6 +243,93 @@ describe('createInquiryRequestSchema', () => {
           'durationMonths',
         ]),
       )
+    }
+  })
+})
+
+describe('inquiryHistoryQuerySchema', () => {
+  it('defaults to the standard page size when no limit is given', () => {
+    expect(inquiryHistoryQuerySchema.parse({}).limit).toBe(INQUIRY_PAGE_SIZE)
+  })
+
+  it('coerces the limit a query string carries', () => {
+    expect(inquiryHistoryQuerySchema.parse({ limit: '5' }).limit).toBe(5)
+  })
+
+  it('accepts both ends of the limit range', () => {
+    expect(inquiryHistoryQuerySchema.parse({ limit: 1 }).limit).toBe(1)
+    expect(inquiryHistoryQuerySchema.parse({ limit: INQUIRY_PAGE_SIZE_MAX }).limit).toBe(
+      INQUIRY_PAGE_SIZE_MAX,
+    )
+  })
+
+  it.each([
+    ['zero', 0],
+    ['a negative limit', -1],
+    ['past the cap', INQUIRY_PAGE_SIZE_MAX + 1],
+    ['a fraction', 1.5],
+    ['a non-numeric limit', 'all'],
+  ])('rejects %s', (_label, limit) => {
+    expect(inquiryHistoryQuerySchema.safeParse({ limit }).success).toBe(false)
+  })
+
+  it('leaves status and cursor unset when absent, so All means all', () => {
+    const result = inquiryHistoryQuerySchema.parse({})
+
+    expect(result.status).toBeUndefined()
+    expect(result.cursor).toBeUndefined()
+  })
+
+  it('rejects a status outside the enum', () => {
+    expect(inquiryHistoryQuerySchema.safeParse({ status: 'PENDING' }).success).toBe(false)
+  })
+
+  it('strips a clientId, which the route takes from the session only', () => {
+    expect(inquiryHistoryQuerySchema.parse({ clientId: 'someone-else' })).not.toHaveProperty(
+      'clientId',
+    )
+  })
+})
+
+describe('inquiryHistoryItemSchema', () => {
+  const base = {
+    id: '8f1e2bb6-6ad8-4a2e-9f6e-1c2f6f2a31aa',
+    placementId: PLACEMENT_ID,
+    status: 'NEW',
+    message: 'We would like to run a two-month campaign on this billboard.',
+    contactName: 'Aziza Karimova',
+    contactPhone: '+998901234567',
+    contactEmail: 'aziza@example.com',
+    desiredStartDate: null,
+    durationMonths: null,
+    createdAt: '2026-10-26T10:00:00.000Z',
+  }
+
+  const placement = {
+    id: PLACEMENT_ID,
+    title: 'Amir Temur Avenue billboard',
+    city: 'Tashkent',
+    type: 'BILLBOARD',
+    isViewable: true,
+  }
+
+  it('parses a row carrying its placement', () => {
+    expect(inquiryHistoryItemSchema.parse({ ...base, placement }).placement).toEqual(placement)
+  })
+
+  it('parses a row whose placement was hard-deleted', () => {
+    expect(inquiryHistoryItemSchema.parse({ ...base, placement: null }).placement).toBeNull()
+  })
+
+  it('requires the placement key, so a missing join is not read as a deleted placement', () => {
+    expect(inquiryHistoryItemSchema.safeParse(base).success).toBe(false)
+  })
+
+  it('carries every field of the submission response, so the two cannot drift apart', () => {
+    const item = inquiryHistoryItemSchema.parse({ ...base, placement })
+
+    for (const key of Object.keys(base)) {
+      expect(item).toHaveProperty(key)
     }
   })
 })
