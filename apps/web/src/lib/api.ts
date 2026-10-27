@@ -2,6 +2,7 @@ import {
   apiErrorSchema,
   authResponseSchema,
   healthResponseSchema,
+  inquiryHistoryResponseSchema,
   inquiryResponseSchema,
   mapMarkersResponseSchema,
   placementDetailSchema,
@@ -9,6 +10,8 @@ import {
   type CreateInquiryRequest,
   type HealthResponse,
   type Inquiry,
+  type InquiryHistoryQuery,
+  type InquiryHistoryResponse,
   type LoginRequest,
   type MapBoundsQuery,
   type MapMarkersResponse,
@@ -127,6 +130,23 @@ export async function logout(): Promise<void> {
 export async function createInquiry(input: CreateInquiryRequest): Promise<Inquiry> {
   const response = await request('/api/inquiries', { method: 'POST', body: input })
   return inquiryResponseSchema.parse(await response.json()).inquiry
+}
+
+/**
+ * One page of the signed-in client's inquiry history. There is no `clientId` parameter: the server
+ * reads it from the session.
+ */
+export async function fetchInquiryHistory(
+  params: Partial<InquiryHistoryQuery> = {},
+): Promise<InquiryHistoryResponse> {
+  const searchParams = new URLSearchParams()
+  if (params.status) searchParams.set('status', params.status)
+  if (params.cursor) searchParams.set('cursor', params.cursor)
+  if (params.limit !== undefined) searchParams.set('limit', params.limit.toString())
+
+  const query = searchParams.toString()
+  const response = await request(`/api/inquiries${query ? `?${query}` : ''}`, { method: 'GET' })
+  return inquiryHistoryResponseSchema.parse(await response.json())
 }
 
 /** The signed-in user, or null when there is no valid session. */

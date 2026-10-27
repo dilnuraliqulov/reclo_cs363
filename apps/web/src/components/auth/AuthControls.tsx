@@ -10,6 +10,7 @@ const copy = {
   signOut: 'Sign out',
   signingOut: 'Signing out…',
   signOutFailed: 'Could not sign out. Please try again.',
+  inquiries: 'My inquiries',
   signIn: 'Sign in',
   signUp: 'Sign up',
 }
@@ -26,6 +27,12 @@ export function AuthControls() {
   if (user) {
     return (
       <div className="flex items-center gap-2">
+        {/* Clients have an inquiry history; vendors and admins have their own screens. */}
+        {user.role === 'CLIENT' && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+            <Link to="/inquiries">{copy.inquiries}</Link>
+          </Button>
+        )}
         <span className="hidden text-xs sm:inline">
           {copy.signedInAs} <span className="font-medium">{user.email}</span>
         </span>
