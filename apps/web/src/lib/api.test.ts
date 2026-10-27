@@ -1,6 +1,6 @@
 import type { MapBoundsQuery } from '@reclo/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchPlacementDetail, fetchPlacementMarkers } from './api'
+import { fetchInquiryHistory, fetchPlacementDetail, fetchPlacementMarkers } from './api'
 
 const bounds: MapBoundsQuery = {
   minLat: 41.0,
@@ -205,5 +205,115 @@ describe('fetchPlacementMarkers', () => {
     const result = await fetchPlacementMarkers(bounds)
 
     expect(result.markers[0]?.photo).toBeUndefined()
+  })
+})
+
+describe('fetchInquiryHistory', () => {
+  const validItem = {
+    id: '8f1e2bb6-6ad8-4a2e-9f6e-1c2f6f2a31a0',
+    placementId: 'b1e0696a-54c3-4d40-84c4-f2a89326e680',
+    status: 'NEW',
+    message: 'We would like to run a two month campaign here.',
+    contactName: 'Aziza Karimova',
+    contactPhone: '+998901234567',
+    contactEmail: 'aziza@example.com',
+    desiredStartDate: '2026-11-01',
+    durationMonths: 2,
+    createdAt: '2026-10-26T10:00:00.000Z',
+    placement: {
+      id: 'b1e0696a-54c3-4d40-84c4-f2a89326e680',
+      title: 'Amir Temur Billboard',
+      city: 'Tashkent',
+      type: 'BILLBOARD',
+      isViewable: true,
+    },
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockReset()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('requests the inquiries endpoint with no query string by default', async () => {
+    respondWith({ inquiries: [validItem], nextCursor: null })
+
+    const result = await fetchInquiryHistory()
+
+    expect(requestedUrl().pathname).toBe('/api/inquiries')
+    expect(requestedUrl().search).toBe('')
+    expect(result.inquiries).toHaveLength(1)
+  })
+
+  it('sends the session cookie, which is the only thing identifying the client', async () => {
+    respondWith({ inquiries: [], nextCursor: null })
+
+    await fetchInquiryHistory()
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET', credentials: 'include' })
+  })
+
+  it('forwards the status filter', async () => {
+    respondWith({ inquiries: [], nextCursor: null })
+
+    await fetchInquiryHistory({ status: 'RESPONDED' })
+
+    expect(requestedUrl().searchParams.get('status')).toBe('RESPONDED')
+  })
+
+  it('forwards the cursor and the limit', async () => {
+    respondWith({ inquiries: [], nextCursor: null })
+
+    await fetchInquiryHistory({ cursor: 'b3Vy', limit: 5 })
+
+    expect(requestedUrl().searchParams.get('cursor')).toBe('b3Vy')
+    expect(requestedUrl().searchParams.get('limit')).toBe('5')
+  })
+
+  it('omits status and cursor when they are unset, so All starts from the newest row', async () => {
+    respondWith({ inquiries: [], nextCursor: null })
+
+    await fetchInquiryHistory({ status: undefined, cursor: undefined })
+
+    expect(requestedUrl().searchParams.has('status')).toBe(false)
+    expect(requestedUrl().searchParams.has('cursor')).toBe(false)
+  })
+
+  it('keeps the next cursor, which is what drives the next page', async () => {
+    respondWith({ inquiries: [validItem], nextCursor: 'MjAyNg' })
+
+    const result = await fetchInquiryHistory()
+
+    expect(result.nextCursor).toBe('MjAyNg')
+  })
+
+  it('accepts a row whose placement was hard-deleted', async () => {
+    respondWith({ inquiries: [{ ...validItem, placement: null }], nextCursor: null })
+
+    const result = await fetchInquiryHistory()
+
+    expect(result.inquiries[0]?.placement).toBeNull()
+  })
+
+  it('rejects a response whose rows do not match the shared schema', async () => {
+    // The page renders nothing at all on a parse failure, so this guard is worth pinning down.
+    respondWith({ inquiries: [{ ...validItem, id: 'not-a-uuid' }], nextCursor: null })
+
+    await expect(fetchInquiryHistory()).rejects.toThrow()
+  })
+
+  it('rejects a response missing the cursor field', async () => {
+    respondWith({ inquiries: [] })
+
+    await expect(fetchInquiryHistory()).rejects.toThrow()
+  })
+
+  it('surfaces the API error message when the response is not ok', async () => {
+    respondWith({ error: 'Invalid input' }, { ok: false, status: 400 })
+
+    await expect(fetchInquiryHistory({ cursor: 'bad' })).rejects.toThrow('Invalid input')
   })
 })
