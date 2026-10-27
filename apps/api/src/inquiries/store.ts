@@ -34,12 +34,18 @@ export class OpenInquiryExistsError extends Error {
 export interface InquiryStore {
   /** Resolves null unless the placement exists and is ACTIVE. */
   findActivePlacement: (id: string) => Promise<InquiryPlacement | null>
-  /** The client's newest open (NEW or READ) inquiry for this placement created at or after `since`. */
-  findOpenInquiry: (input: {
-    clientId: string
-    placementId: string
-    since: Date
-  }) => Promise<OpenInquiry | null>
+  /**
+   * The client's newest open (NEW or READ) inquiry for this placement, whatever its age. The route
+   * applies the 14-day window, because the partial unique index cannot: a Postgres index predicate
+   * must be IMMUTABLE, so it cannot mention `now()`.
+   */
+  findOpenInquiry: (input: { clientId: string; placementId: string }) => Promise<OpenInquiry | null>
+  /**
+   * Closes an inquiry a vendor left open past the window, so the client is not locked out of the
+   * placement for good. Returns false when the row was no longer open, which means a vendor or a
+   * racing request got there first.
+   */
+  closeStaleInquiry: (id: string) => Promise<boolean>
   /** Throws `OpenInquiryExistsError` when an open inquiry already exists. */
   createInquiry: (input: CreateInquiryInput) => Promise<Inquiry>
 }

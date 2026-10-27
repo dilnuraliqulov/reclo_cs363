@@ -42,17 +42,21 @@ export function createPrismaInquiryStore(prisma: PrismaClient): InquiryStore {
         select: { id: true, vendorId: true },
       }),
 
-    findOpenInquiry: ({ clientId, placementId, since }) =>
+    findOpenInquiry: ({ clientId, placementId }) =>
       prisma.inquiry.findFirst({
-        where: {
-          clientId,
-          placementId,
-          status: { in: [...OPEN_INQUIRY_STATUSES] },
-          createdAt: { gte: since },
-        },
+        where: { clientId, placementId, status: { in: [...OPEN_INQUIRY_STATUSES] } },
         select: { id: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       }),
+
+    async closeStaleInquiry(id) {
+      // Scoped to the open statuses, so this cannot reopen or overwrite a vendor's own transition.
+      const { count } = await prisma.inquiry.updateMany({
+        where: { id, status: { in: [...OPEN_INQUIRY_STATUSES] } },
+        data: { status: 'CLOSED' },
+      })
+      return count > 0
+    },
 
     async createInquiry(input: CreateInquiryInput) {
       try {

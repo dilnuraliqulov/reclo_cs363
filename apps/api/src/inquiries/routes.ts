@@ -63,19 +63,24 @@ export function createInquiryRouter({
         return
       }
 
-      // Advisory: two concurrent submits can both pass it, so the partial unique index holds the
-      // real rule and a unique violation on insert answers the same way.
-      const open = await store.findOpenInquiry({
-        clientId,
-        placementId,
-        since: new Date(now().getTime() - DUPLICATE_WINDOW_MS),
-      })
+      // The window lives here rather than in the partial unique index, whose predicate must be
+      // IMMUTABLE and so cannot mention `now()`. The index stays the race guard: two concurrent
+      // submits can both pass this check, and the unique violation below answers the same way.
+      const open = await store.findOpenInquiry({ clientId, placementId })
       if (open) {
-        res.status(409).json({
-          error: DUPLICATE_ERROR,
-          existingInquiryCreatedAt: open.createdAt.toISOString(),
-        } satisfies InquiryConflict)
-        return
+        const cutoff = new Date(now().getTime() - DUPLICATE_WINDOW_MS)
+        if (open.createdAt >= cutoff) {
+          res.status(409).json({
+            error: DUPLICATE_ERROR,
+            existingInquiryCreatedAt: open.createdAt.toISOString(),
+          } satisfies InquiryConflict)
+          return
+        }
+        // Past the window: a vendor who never replied must not lock the client out of this
+        // placement for good. Closing the stale row is also what frees the index to accept the
+        // new one. If it is no longer open, a vendor or a racing request got there first, and the
+        // insert below decides the outcome.
+        await store.closeStaleInquiry(open.id)
       }
 
       try {

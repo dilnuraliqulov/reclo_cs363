@@ -198,6 +198,62 @@ describe('InquiryFormDialog', () => {
     expect(screen.getByRole('button', { name: 'Send inquiry' })).toBeDisabled()
   })
 
+  it('sends the optional campaign fields when they are filled in', async () => {
+    const user = userEvent.setup()
+    const fetchMock = stubApi()
+    renderDialog()
+
+    await user.type(await screen.findByLabelText('Your name'), 'Aziza Karimova')
+    await user.type(screen.getByLabelText('Phone'), '+998901234567')
+    await user.type(screen.getByLabelText('Preferred start'), '2026-12-01')
+    await user.click(screen.getByRole('combobox', { name: 'Duration' }))
+    await user.click(await screen.findByRole('option', { name: '6 months' }))
+    await user.type(screen.getByLabelText('Message'), 'We would like a two-month campaign here.')
+    await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+    await waitFor(() =>
+      expect(submittedBody(fetchMock)).toMatchObject({
+        desiredStartDate: '2026-12-01',
+        durationMonths: 6,
+      }),
+    )
+  })
+
+  it('counts the message against its limit', async () => {
+    const user = userEvent.setup()
+    stubApi()
+    renderDialog()
+
+    expect(await screen.findByText('0/2000')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Message'), 'Twelve chars')
+
+    expect(screen.getByText('12/2000')).toBeInTheDocument()
+  })
+
+  it('disables every input while the inquiry is in flight', async () => {
+    const user = userEvent.setup()
+    let release: (() => void) | undefined
+    stubApi({
+      onPost: () =>
+        new Promise((resolve) => {
+          release = () => resolve(json(201, { inquiry: null }))
+        }),
+    })
+    renderDialog()
+
+    await user.type(await screen.findByLabelText('Your name'), 'Aziza Karimova')
+    await user.type(screen.getByLabelText('Phone'), '+998901234567')
+    await user.type(screen.getByLabelText('Message'), 'We would like a two-month campaign here.')
+    await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+    expect(await screen.findByRole('button', { name: 'Sending…' })).toBeDisabled()
+    expect(screen.getByLabelText('Your name')).toBeDisabled()
+    expect(screen.getByLabelText('Message')).toBeDisabled()
+
+    release?.()
+  })
+
   it('swaps to the sign-in prompt when the session has expired', async () => {
     const user = userEvent.setup()
     stubApi({ onPost: () => json(401, { error: 'Not authenticated' }) })

@@ -76,6 +76,13 @@ CREATE UNIQUE INDEX "Inquiry_open_per_client_placement"
 
 Without it, two submits racing past the application-level check both insert.
 
+The index cannot carry the 14-day term: a Postgres index predicate must be `IMMUTABLE`, so it cannot
+mention `now()`. A status-only index on its own would therefore defeat the expiry above — a stale
+`NEW` row would keep rejecting the insert forever. The window lives in the route instead, which
+closes an open inquiry older than 14 days (`status -> CLOSED`) before inserting the replacement. That
+is also what frees the index to accept it. Closing the stale row is the one status transition this
+task performs; the rest belong to the vendor inbox (KAN-15).
+
 ## Shared Zod schemas (`packages/shared/src/inquiry.ts`)
 
 ```ts
@@ -146,10 +153,13 @@ Server-side rules on `POST`:
 2. Load the placement. A missing placement and one that is not `ACTIVE` both return the same `404`
    `{ error: "Placement not found" }` — a client has no business learning that an archived or
    pending-review placement exists.
-3. Reject with `409 { error: "You already have an open inquiry for this placement" }` when a `NEW` or
-   `READ` inquiry exists for this `(clientId, placementId)` and is less than 14 days old. The check is
-   advisory: two concurrent submits can both pass it, so the database holds the real rule (below) and a
-   unique-violation on insert is caught and returned as the same `409`.
+3. Load the client's newest open (`NEW` or `READ`) inquiry for this placement, whatever its age.
+   Reject with `409 { error: "You already have an open inquiry for this placement" }` when it is less
+   than 14 days old; the body also carries `existingInquiryCreatedAt`, so the form can name the date.
+   When it is older, close it (`status -> CLOSED`) and carry on: the vendor had its window and the
+   client must not stay locked out. The check is advisory either way — two concurrent submits can both
+   pass it, so the partial unique index holds the real rule and a unique-violation on insert is caught
+   and returned as the same `409`.
 4. Insert with `clientId` from the session and `vendorId` from `placement.vendorId`.
 5. Return the inquiry as the client sees it. The vendor's identity is not in the response: the client
    deals with Reclo, not with the vendor's account.

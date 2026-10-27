@@ -20,3 +20,14 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+// jsdom implements none of the pointer-capture APIs, and Radix's Select calls them while opening.
+// Without these, any test that opens a Select throws "hasPointerCapture is not a function".
+// They go on Element, where jsdom would define them, so a test that stubs one of these on
+// Element.prototype still wins — on HTMLElement they would shadow it instead.
+Object.assign(window.Element.prototype, {
+  hasPointerCapture: () => false,
+  setPointerCapture: () => {},
+  releasePointerCapture: () => {},
+  scrollIntoView: () => {},
+})
