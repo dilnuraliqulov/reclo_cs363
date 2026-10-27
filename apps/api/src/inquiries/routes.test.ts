@@ -41,6 +41,7 @@ function setup(storeOverride: Partial<InquiryStore> = {}) {
     findOpenInquiry: vi.fn().mockResolvedValue(null),
     closeStaleInquiry: vi.fn().mockResolvedValue(true),
     createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+    listClientInquiries: vi.fn().mockResolvedValue([]),
     ...storeOverride,
   }
   const app = createApp({
@@ -206,6 +207,7 @@ describe('POST /api/inquiries', () => {
       findOpenInquiry: vi.fn().mockResolvedValue(null),
       closeStaleInquiry: vi.fn().mockResolvedValue(true),
       createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+      listClientInquiries: vi.fn().mockResolvedValue([]),
     }
     const app = createApp({
       checkDatabase: async () => {},
@@ -233,6 +235,7 @@ describe('POST /api/inquiries', () => {
       findOpenInquiry: vi.fn().mockResolvedValue(stale),
       closeStaleInquiry: vi.fn().mockResolvedValue(true),
       createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+      listClientInquiries: vi.fn().mockResolvedValue([]),
     }
     const app = createApp({
       checkDatabase: async () => {},
@@ -256,6 +259,7 @@ describe('POST /api/inquiries', () => {
       findOpenInquiry: vi.fn().mockResolvedValue(recent),
       closeStaleInquiry: vi.fn().mockResolvedValue(true),
       createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+      listClientInquiries: vi.fn().mockResolvedValue([]),
     }
     const app = createApp({
       checkDatabase: async () => {},
@@ -309,6 +313,7 @@ describe('POST /api/inquiries', () => {
         findOpenInquiry: vi.fn().mockResolvedValue(null),
         closeStaleInquiry: vi.fn().mockResolvedValue(true),
         createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+        listClientInquiries: vi.fn().mockResolvedValue([]),
       },
       inquiryRateLimitMax: 2,
     })

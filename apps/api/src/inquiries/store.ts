@@ -1,4 +1,5 @@
-import type { Inquiry } from '@reclo/shared'
+import type { Inquiry, InquiryHistoryItem, InquiryStatus } from '@reclo/shared'
+import type { InquiryCursor } from './cursor'
 
 /** The placement fields the inquiry routes need to accept a submission. */
 export interface InquiryPlacement {
@@ -21,6 +22,14 @@ export interface CreateInquiryInput {
   contactEmail: string
   desiredStartDate: Date | null
   durationMonths: number | null
+}
+
+export interface ListClientInquiriesInput {
+  clientId: string
+  status?: InquiryStatus
+  /** Rows strictly older than this, by `(createdAt, id)` descending. */
+  cursor?: InquiryCursor
+  limit: number
 }
 
 /** Thrown by `createInquiry` when the partial unique index rejects a second open inquiry. */
@@ -48,4 +57,12 @@ export interface InquiryStore {
   closeStaleInquiry: (id: string) => Promise<boolean>
   /** Throws `OpenInquiryExistsError` when an open inquiry already exists. */
   createInquiry: (input: CreateInquiryInput) => Promise<Inquiry>
+  /**
+   * One client's inquiries, newest first, for the history page. The cursor arrives already
+   * decoded, so cursor encoding stays in the route and this stays a plain query.
+   *
+   * Returns up to `limit` rows; the route asks for one more than the page size and trims, which is
+   * how it learns whether another page exists without a second count query.
+   */
+  listClientInquiries: (input: ListClientInquiriesInput) => Promise<InquiryHistoryItem[]>
 }
