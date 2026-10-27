@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { Calendar, Compass, DollarSign, ImageOff, MapPin, Sparkles } from 'lucide-react'
 import { InquiryFormDialog } from '@/components/inquiries/InquiryFormDialog'
@@ -44,6 +44,7 @@ export function PlacementDetailModal({
 }: PlacementDetailModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
   const [isInquiryOpen, setIsInquiryOpen] = useState(false)
+  const inquireRef = useRef<HTMLButtonElement>(null)
   if (!marker) return null
   const typeColor = getPlacementTypeColor(detail?.type ?? marker.type)
   const photos = detail?.photos.length ? detail.photos : marker.photo ? [marker.photo] : []
@@ -146,7 +147,7 @@ export function PlacementDetailModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button className="gap-1.5" onClick={() => setIsInquiryOpen(true)}>
+          <Button ref={inquireRef} className="gap-1.5" onClick={() => setIsInquiryOpen(true)}>
             <Sparkles className="w-4 h-4" />
             Inquire / Reserve
           </Button>
@@ -157,7 +158,11 @@ export function PlacementDetailModal({
           <InquiryFormDialog
             placement={marker}
             open={isInquiryOpen}
-            onOpenChange={setIsInquiryOpen}
+            onOpenChange={(open) => {
+              setIsInquiryOpen(open)
+              // The form unmounts as it closes, so Radix never gets to restore focus itself.
+              if (!open) requestAnimationFrame(() => inquireRef.current?.focus())
+            }}
           />
         )}
       </DialogContent>

@@ -39,6 +39,7 @@ function setup(storeOverride: Partial<InquiryStore> = {}) {
   const store: InquiryStore = {
     findActivePlacement: vi.fn().mockResolvedValue({ id: PLACEMENT_ID, vendorId: VENDOR_ID }),
     findOpenInquiry: vi.fn().mockResolvedValue(null),
+    closeStaleInquiry: vi.fn().mockResolvedValue(true),
     createInquiry: vi.fn().mockResolvedValue(createdInquiry),
     ...storeOverride,
   }
@@ -198,30 +199,77 @@ describe('POST /api/inquiries', () => {
     expect(store.createInquiry).not.toHaveBeenCalled()
   })
 
-  it('only counts open inquiries from the last 14 days', async () => {
-    const now = new Date('2026-10-26T10:00:00.000Z')
+  it('looks an open inquiry up by client and placement, whatever its age', async () => {
     const memory = createMemoryAuthStore()
     const store: InquiryStore = {
       findActivePlacement: vi.fn().mockResolvedValue({ id: PLACEMENT_ID, vendorId: VENDOR_ID }),
       findOpenInquiry: vi.fn().mockResolvedValue(null),
+      closeStaleInquiry: vi.fn().mockResolvedValue(true),
       createInquiry: vi.fn().mockResolvedValue(createdInquiry),
     }
     const app = createApp({
       checkDatabase: async () => {},
       authStore: memory.store,
       inquiryStore: store,
-      now: () => now,
+      now: () => new Date('2026-10-26T10:00:00.000Z'),
     })
     const cookie = await signIn(app)
 
     const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
 
     expect(response.status).toBe(201)
+    // The 14-day window is the route's to apply, not the store's.
     expect(store.findOpenInquiry).toHaveBeenCalledWith({
       clientId: memory.users[0]!.id,
       placementId: PLACEMENT_ID,
-      since: new Date('2026-10-12T10:00:00.000Z'),
     })
+  })
+
+  it('closes a stale open inquiry before inserting the new one', async () => {
+    const stale = { id: 'stale-inquiry', createdAt: new Date('2026-10-01T10:00:00.000Z') }
+    const memory = createMemoryAuthStore()
+    const store: InquiryStore = {
+      findActivePlacement: vi.fn().mockResolvedValue({ id: PLACEMENT_ID, vendorId: VENDOR_ID }),
+      findOpenInquiry: vi.fn().mockResolvedValue(stale),
+      closeStaleInquiry: vi.fn().mockResolvedValue(true),
+      createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+    }
+    const app = createApp({
+      checkDatabase: async () => {},
+      authStore: memory.store,
+      inquiryStore: store,
+      now: () => new Date('2026-10-26T10:00:00.000Z'),
+    })
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+
+    expect(response.status).toBe(201)
+    expect(store.closeStaleInquiry).toHaveBeenCalledWith(stale.id)
+  })
+
+  it('leaves a recent open inquiry alone and answers 409', async () => {
+    const recent = { id: 'recent-inquiry', createdAt: new Date('2026-10-25T10:00:00.000Z') }
+    const memory = createMemoryAuthStore()
+    const store: InquiryStore = {
+      findActivePlacement: vi.fn().mockResolvedValue({ id: PLACEMENT_ID, vendorId: VENDOR_ID }),
+      findOpenInquiry: vi.fn().mockResolvedValue(recent),
+      closeStaleInquiry: vi.fn().mockResolvedValue(true),
+      createInquiry: vi.fn().mockResolvedValue(createdInquiry),
+    }
+    const app = createApp({
+      checkDatabase: async () => {},
+      authStore: memory.store,
+      inquiryStore: store,
+      now: () => new Date('2026-10-26T10:00:00.000Z'),
+    })
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+
+    expect(response.status).toBe(409)
+    expect(store.closeStaleInquiry).not.toHaveBeenCalled()
+    expect(store.createInquiry).not.toHaveBeenCalled()
   })
 
   it('returns 409 when the database rejects a racing second submit', async () => {
@@ -259,6 +307,7 @@ describe('POST /api/inquiries', () => {
       inquiryStore: {
         findActivePlacement: vi.fn().mockResolvedValue({ id: PLACEMENT_ID, vendorId: VENDOR_ID }),
         findOpenInquiry: vi.fn().mockResolvedValue(null),
+        closeStaleInquiry: vi.fn().mockResolvedValue(true),
         createInquiry: vi.fn().mockResolvedValue(createdInquiry),
       },
       inquiryRateLimitMax: 2,

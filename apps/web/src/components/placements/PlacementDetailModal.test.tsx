@@ -1,6 +1,6 @@
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
@@ -167,6 +167,42 @@ describe('PlacementDetailModal', () => {
     await user.click(screen.getByRole('button', { name: /Inquire \/ Reserve/i }))
 
     expect(await screen.findByText('Send an inquiry')).toBeInTheDocument()
+    vi.unstubAllGlobals()
+  })
+
+  it('returns focus to the Inquire button when the inquiry form closes', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: 'Not authenticated' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <MemoryRouter>
+          <AuthProvider>
+            <PlacementDetailModal marker={marker} detail={null} open onOpenChange={vi.fn()} />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    const inquire = screen.getByRole('button', { name: /Inquire \/ Reserve/i })
+    await user.click(inquire)
+    expect(await screen.findByText('Send an inquiry')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    // The placement detail is still open behind it, so focus belongs back on its opener.
+    await waitFor(() => expect(screen.queryByText('Send an inquiry')).not.toBeInTheDocument())
+    await waitFor(() => expect(inquire).toHaveFocus())
     vi.unstubAllGlobals()
   })
 
