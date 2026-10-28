@@ -25,6 +25,8 @@ const sampleDetail: PlacementDetail = {
   height: 3,
   lighting: true,
   photos: ['https://example.com/photo.jpg', 'https://example.com/photo-2.jpg'],
+  ledDurationSeconds: null,
+  ledPlaysPerDay: null,
   vendorId: 'vendor-123',
   createdAt: '2026-10-10T10:00:00.000Z',
   updatedAt: '2026-10-12T15:00:00.000Z',
@@ -174,7 +176,7 @@ describe('GET /api/placements/map', () => {
     })
   })
 
-  it('passes optional filters (type, city, minPrice, maxPrice) to store', async () => {
+  it('passes optional filters, including LED attributes, to store', async () => {
     const { app, store } = createTestApp()
 
     const res = await request(app).get('/api/placements/map').query({
@@ -182,10 +184,12 @@ describe('GET /api/placements/map', () => {
       maxLat: 42.0,
       minLng: 69.0,
       maxLng: 70.0,
-      type: 'BILLBOARD',
+      type: 'LED_SCREEN',
       city: 'Tashkent',
       minPrice: 1_000_000,
       maxPrice: 10_000_000,
+      ledDurationSeconds: 15,
+      ledPlaysPerDay: 120,
     })
 
     expect(res.status).toBe(200)
@@ -194,11 +198,29 @@ describe('GET /api/placements/map', () => {
       maxLat: 42.0,
       minLng: 69.0,
       maxLng: 70.0,
-      type: 'BILLBOARD',
+      type: 'LED_SCREEN',
       city: 'Tashkent',
       minPrice: 1_000_000,
       maxPrice: 10_000_000,
+      ledDurationSeconds: 15,
+      ledPlaysPerDay: 120,
     })
+  })
+
+  it('rejects LED-only filters unless type is LED_SCREEN', async () => {
+    const { app } = createTestApp()
+
+    const res = await request(app).get('/api/placements/map').query({
+      minLat: 41.0,
+      maxLat: 42.0,
+      minLng: 69.0,
+      maxLng: 70.0,
+      ledDurationSeconds: 15,
+    })
+
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('Invalid query parameters')
+    expect(res.body.fieldErrors).toHaveProperty('type')
   })
 
   it('returns 500 when store throws an unexpected error', async () => {

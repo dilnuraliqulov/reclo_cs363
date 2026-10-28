@@ -139,6 +139,19 @@ export function PlacementDetailModal({
             </span>
             <span className="text-emerald-600 font-medium">Available now</span>
           </div>
+
+          {detail?.type === 'LED_SCREEN' && detail.ledDurationSeconds !== null && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">LED slot duration</span>
+              <span className="font-medium">{detail.ledDurationSeconds}s</span>
+            </div>
+          )}
+          {detail?.type === 'LED_SCREEN' && detail.ledPlaysPerDay !== null && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">LED plays/day</span>
+              <span className="font-medium">{detail.ledPlaysPerDay}</span>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2">

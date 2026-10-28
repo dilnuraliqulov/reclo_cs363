@@ -32,8 +32,6 @@ model User {
 enum PlacementType {
   BILLBOARD
   LED_SCREEN
-  WALL_MURAL
-  CITY_FORMAT
 }
 
 enum PlacementStatus {
@@ -57,6 +55,8 @@ model Placement {
   width         Float?          // Width in meters
   height        Float?          // Height in meters
   lighting      Boolean         @default(false)
+  ledDurationSeconds Int?
+  ledPlaysPerDay    Int?
   photos        String[]        @default([])
   vendorId      String
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
