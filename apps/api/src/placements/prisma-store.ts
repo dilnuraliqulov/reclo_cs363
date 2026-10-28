@@ -1,10 +1,15 @@
 import type { MapBoundsQuery, PlacementDetail, PlacementMarker } from '@reclo/shared'
 import type { PrismaClient } from '../generated/prisma/client'
+import { publicPhotoUrl } from './photo-storage'
 import type { PlacementStore } from './store'
 import { getPlacementTier } from './tier'
 
 export class PrismaPlacementStore implements PlacementStore {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    /** Prefixed onto stored site-relative photo paths; absolute URLs pass through unchanged. */
+    private readonly publicUrl = '',
+  ) {}
 
   async findMapMarkers(query: MapBoundsQuery): Promise<PlacementMarker[]> {
     const { minLat, maxLat, minLng, maxLng, type, city, minPrice, maxPrice } = query
@@ -58,7 +63,7 @@ export class PrismaPlacementStore implements PlacementStore {
       address: p.address,
       city: p.city,
       pricePerMonth: p.pricePerMonth,
-      ...(p.photos.length > 0 ? { photo: p.photos[0] } : {}),
+      ...(p.photos[0] ? { photo: publicPhotoUrl(p.photos[0], this.publicUrl) } : {}),
     }))
   }
 
@@ -103,13 +108,15 @@ export class PrismaPlacementStore implements PlacementStore {
       address: placement.address,
       city: placement.city,
       pricePerMonth: placement.pricePerMonth,
-      ...(placement.photos.length > 0 ? { photo: placement.photos[0] } : {}),
+      ...(placement.photos[0]
+        ? { photo: publicPhotoUrl(placement.photos[0], this.publicUrl) }
+        : {}),
       tier: getPlacementTier(placement.pricePerMonth),
       description: placement.description,
       width: placement.width,
       height: placement.height,
       lighting: placement.lighting,
-      photos: placement.photos,
+      photos: placement.photos.map((photo) => publicPhotoUrl(photo, this.publicUrl)),
       vendorId: placement.vendorId,
       createdAt: placement.createdAt.toISOString(),
       updatedAt: placement.updatedAt.toISOString(),
