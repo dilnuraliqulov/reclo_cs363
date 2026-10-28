@@ -1,6 +1,7 @@
 import {
   loginRequestSchema,
   registerRequestSchema,
+  VALIDATION_CODES,
   type ApiError,
   type AuthResponse,
   type PublicUser,
@@ -28,7 +29,12 @@ const INVALID_CREDENTIALS = 'Invalid email or password'
 const dummyHash = argon2.hash('reclo-timing-equalizer')
 
 function validationError(error: z.ZodError): ApiError {
-  return { error: 'Invalid input', fieldErrors: z.flattenError(error).fieldErrors }
+  return {
+    error: 'Invalid input',
+    code: 'INVALID_INPUT',
+    // Already codes, not sentences: these schemas are parsed by the web form too.
+    fieldErrors: z.flattenError(error).fieldErrors,
+  }
 }
 
 export function createAuthRouter({
@@ -52,7 +58,10 @@ export function createAuthRouter({
     limit: rateLimitMax,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    message: { error: 'Too many attempts, try again later' } satisfies ApiError,
+    message: {
+      error: 'Too many attempts, try again later',
+      code: 'RATE_LIMITED',
+    } satisfies ApiError,
   })
 
   async function startSession(res: Response, user: PublicUser): Promise<void> {
@@ -78,7 +87,8 @@ export function createAuthRouter({
         if (error instanceof EmailTakenError) {
           res.status(409).json({
             error: error.message,
-            fieldErrors: { email: [error.message] },
+            code: 'EMAIL_TAKEN',
+            fieldErrors: { email: [VALIDATION_CODES.emailTaken] },
           } satisfies ApiError)
           return
         }
@@ -102,7 +112,9 @@ export function createAuthRouter({
       const found = await store.findUserByEmail(email)
       const passwordOk = await argon2.verify(found?.passwordHash ?? (await dummyHash), password)
       if (!found || !passwordOk) {
-        res.status(401).json({ error: INVALID_CREDENTIALS } satisfies ApiError)
+        res
+          .status(401)
+          .json({ error: INVALID_CREDENTIALS, code: 'INVALID_CREDENTIALS' } satisfies ApiError)
         return
       }
       const user: PublicUser = { id: found.id, email: found.email, role: found.role }

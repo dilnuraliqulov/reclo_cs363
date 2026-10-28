@@ -8,6 +8,7 @@ import {
   placementDetailSchema,
   type ApiError,
   type CreateInquiryRequest,
+  type ErrorCode,
   type HealthResponse,
   type Inquiry,
   type InquiryHistoryQuery,
@@ -25,6 +26,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 /** An error response from the API, with the field errors when the server sent them. */
 export class ApiRequestError extends Error {
   readonly status: number
+  /** Why it failed, as a stable token. The words to show for it live in `lib/messages.ts`. */
+  readonly code: ErrorCode | undefined
   readonly fieldErrors: ApiError['fieldErrors']
   /** The raw error body, for routes that answer with more than `error` and `fieldErrors`. */
   readonly body: unknown
@@ -34,9 +37,11 @@ export class ApiRequestError extends Error {
     message: string,
     fieldErrors?: ApiError['fieldErrors'],
     body?: unknown,
+    code?: ErrorCode,
   ) {
     super(message)
     this.status = status
+    this.code = code
     this.fieldErrors = fieldErrors
     this.body = body
   }
@@ -62,6 +67,7 @@ async function request(path: string, init: { method: string; body?: unknown }): 
       parsed.success ? parsed.data.error : 'Something went wrong. Please try again.',
       parsed.success ? parsed.data.fieldErrors : undefined,
       body,
+      parsed.success ? parsed.data.code : undefined,
     )
   }
   return response

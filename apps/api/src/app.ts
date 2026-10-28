@@ -92,11 +92,11 @@ export function createApp({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error?.type === 'entity.parse.failed') {
-      res.status(400).json({ error: 'Malformed JSON' } satisfies ApiError)
+      res.status(400).json({ error: 'Malformed JSON', code: 'MALFORMED_JSON' } satisfies ApiError)
       return
     }
     console.error('Unhandled error', error)
-    res.status(500).json({ error: 'Something went wrong' } satisfies ApiError)
+    res.status(500).json({ error: 'Something went wrong', code: 'INTERNAL' } satisfies ApiError)
   }
   app.use(errorHandler)
 

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { apiErrorSchema } from './errors'
+import { apiErrorSchema, VALIDATION_CODES } from './errors'
 import { placementTypeSchema } from './placement'
 
 export const inquiryStatusSchema = z.enum(['NEW', 'READ', 'RESPONDED', 'CLOSED'])
@@ -26,7 +26,7 @@ export const uzPhoneSchema = z
     if (/^\d{9}$/.test(digits)) return `+998${digits}`
     return value
   })
-  .pipe(z.string().regex(/^\+998\d{9}$/, 'Enter a valid Uzbek number, e.g. +998 90 123 45 67'))
+  .pipe(z.string().regex(/^\+998\d{9}$/, VALIDATION_CODES.phoneUz))
 
 /**
  * Unknown keys are stripped, so `status`, `clientId` and `vendorId` in a request body have no
@@ -37,11 +37,11 @@ export const createInquiryRequestSchema = z.object({
   message: z
     .string()
     .trim()
-    .min(MESSAGE_MIN_LENGTH, `Message must be at least ${MESSAGE_MIN_LENGTH} characters`)
-    .max(MESSAGE_MAX_LENGTH, `Message must be at most ${MESSAGE_MAX_LENGTH} characters`),
-  contactName: z.string().trim().min(2, 'Enter your name').max(120),
+    .min(MESSAGE_MIN_LENGTH, VALIDATION_CODES.messageTooShort)
+    .max(MESSAGE_MAX_LENGTH, VALIDATION_CODES.messageTooLong),
+  contactName: z.string().trim().min(2, VALIDATION_CODES.nameRequired).max(120),
   contactPhone: uzPhoneSchema,
-  contactEmail: z.string().trim().toLowerCase().pipe(z.email('Enter a valid email')),
+  contactEmail: z.string().trim().toLowerCase().pipe(z.email(VALIDATION_CODES.emailInvalid)),
   desiredStartDate: z.string().date().optional(),
   durationMonths: z.coerce.number().int().min(1).max(DURATION_MAX_MONTHS).optional(),
 })

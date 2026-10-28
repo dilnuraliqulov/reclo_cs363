@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { VALIDATION_CODES } from './errors'
 import {
   createInquiryRequestSchema,
   DURATION_MAX_MONTHS,
@@ -60,12 +61,14 @@ describe('uzPhoneSchema', () => {
     expect(uzPhoneSchema.safeParse(input).success).toBe(false)
   })
 
-  it('explains what a valid number looks like', () => {
+  it('names the phone code rather than a sentence, since both locales render it', () => {
     const result = uzPhoneSchema.safeParse('+7 495 123 45 67')
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toMatch(/valid Uzbek number/i)
+      // The message is parsed by the web form and the API route alike, so it belongs to no one
+      // language; `apps/web/src/lib/messages.ts` holds the words.
+      expect(result.error.issues[0]?.message).toBe(VALIDATION_CODES.phoneUz)
     }
   })
 })

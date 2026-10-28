@@ -130,7 +130,7 @@ describe('POST /api/inquiries', () => {
     const response = await request(app).post('/api/inquiries').send(validBody)
 
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Not authenticated' })
+    expect(response.body).toEqual({ error: 'Not authenticated', code: 'NOT_AUTHENTICATED' })
     expect(store.createInquiry).not.toHaveBeenCalled()
   })
 
@@ -142,7 +142,7 @@ describe('POST /api/inquiries', () => {
     const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
 
     expect(response.status).toBe(403)
-    expect(response.body).toEqual({ error: 'Forbidden' })
+    expect(response.body).toEqual({ error: 'Forbidden', code: 'FORBIDDEN' })
     expect(store.createInquiry).not.toHaveBeenCalled()
   })
 
@@ -181,7 +181,7 @@ describe('POST /api/inquiries', () => {
     const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
 
     expect(response.status).toBe(404)
-    expect(response.body).toEqual({ error: 'Placement not found' })
+    expect(response.body).toEqual({ error: 'Placement not found', code: 'PLACEMENT_NOT_FOUND' })
     expect(store.createInquiry).not.toHaveBeenCalled()
   })
 
@@ -195,6 +195,7 @@ describe('POST /api/inquiries', () => {
     expect(response.status).toBe(409)
     expect(response.body).toEqual({
       error: 'You already have an open inquiry for this placement',
+      code: 'DUPLICATE_INQUIRY',
       existingInquiryCreatedAt: existing.createdAt.toISOString(),
     })
     expect(store.createInquiry).not.toHaveBeenCalled()
@@ -287,6 +288,7 @@ describe('POST /api/inquiries', () => {
     expect(response.status).toBe(409)
     expect(response.body).toEqual({
       error: 'You already have an open inquiry for this placement',
+      code: 'DUPLICATE_INQUIRY',
     })
   })
 
@@ -298,7 +300,7 @@ describe('POST /api/inquiries', () => {
     const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
 
     expect(response.status).toBe(500)
-    expect(response.body).toEqual({ error: 'Something went wrong' })
+    expect(response.body).toEqual({ error: 'Something went wrong', code: 'INTERNAL' })
     expect(JSON.stringify(response.body)).not.toContain('on fire')
     consoleError.mockRestore()
   })

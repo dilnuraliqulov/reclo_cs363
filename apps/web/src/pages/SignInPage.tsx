@@ -18,6 +18,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ApiRequestError, login } from '@/lib/api'
+import { apiErrorText, fieldError } from '@/lib/messages'
 
 // All user-visible strings for this page, in one place for the future translation task.
 const copy = {
@@ -57,7 +58,7 @@ export function SignInPage() {
           }
         }
       }
-      toast.error(error.message)
+      toast.error(apiErrorText(error))
     },
   })
 
@@ -85,7 +86,7 @@ export function SignInPage() {
                       disabled={signIn.isPending}
                       aria-invalid={fieldState.invalid}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
                   </Field>
                 )}
               />
@@ -103,7 +104,7 @@ export function SignInPage() {
                       disabled={signIn.isPending}
                       aria-invalid={fieldState.invalid}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
                   </Field>
                 )}
               />

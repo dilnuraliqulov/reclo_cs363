@@ -1,4 +1,4 @@
-import type { PublicUser, Role } from '@reclo/shared'
+import type { ApiError, PublicUser, Role } from '@reclo/shared'
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { SESSION_COOKIE, hashSessionToken } from './session'
 import type { AuthStore } from './store'
@@ -36,7 +36,9 @@ export function createRequireAuth(
         }
         if (session) await store.deleteSessionByTokenHash(tokenHash)
       }
-      res.status(401).json({ error: 'Not authenticated' })
+      res
+        .status(401)
+        .json({ error: 'Not authenticated', code: 'NOT_AUTHENTICATED' } satisfies ApiError)
     } catch (error) {
       next(error)
     }
@@ -47,11 +49,13 @@ export function createRequireAuth(
 export function requireRole(...roles: Role[]): RequestHandler {
   return (req, res, next) => {
     if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' })
+      res
+        .status(401)
+        .json({ error: 'Not authenticated', code: 'NOT_AUTHENTICATED' } satisfies ApiError)
       return
     }
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({ error: 'Forbidden' })
+      res.status(403).json({ error: 'Forbidden', code: 'FORBIDDEN' } satisfies ApiError)
       return
     }
     next()

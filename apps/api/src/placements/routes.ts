@@ -24,6 +24,7 @@ export function createPlacementRouter({ store }: { store: PlacementStore }): Rou
 
       res.status(400).json({
         error: 'Invalid query parameters',
+        code: 'INVALID_QUERY',
         fieldErrors,
       } satisfies ApiError)
       return
@@ -37,14 +38,19 @@ export function createPlacementRouter({ store }: { store: PlacementStore }): Rou
       } satisfies MapMarkersResponse)
     } catch (error) {
       console.error('Failed to query map markers', error)
-      res.status(500).json({ error: 'Failed to query map markers' } satisfies ApiError)
+      res.status(500).json({
+        error: 'Failed to query map markers',
+        code: 'MARKER_QUERY_FAILED',
+      } satisfies ApiError)
     }
   })
 
   router.get('/:id', async (req, res) => {
     const parsedId = z.string().uuid().safeParse(req.params.id)
     if (!parsedId.success) {
-      res.status(400).json({ error: 'Invalid placement id' } satisfies ApiError)
+      res
+        .status(400)
+        .json({ error: 'Invalid placement id', code: 'INVALID_PLACEMENT_ID' } satisfies ApiError)
       return
     }
 
@@ -52,14 +58,19 @@ export function createPlacementRouter({ store }: { store: PlacementStore }): Rou
       const placement = await store.findPlacementDetail(parsedId.data)
 
       if (!placement) {
-        res.status(404).json({ error: 'Placement not found' } satisfies ApiError)
+        res
+          .status(404)
+          .json({ error: 'Placement not found', code: 'PLACEMENT_NOT_FOUND' } satisfies ApiError)
         return
       }
 
       res.json(placement satisfies PlacementDetail)
     } catch (error) {
       console.error('Failed to fetch placement detail', error)
-      res.status(500).json({ error: 'Failed to fetch placement detail' } satisfies ApiError)
+      res.status(500).json({
+        error: 'Failed to fetch placement detail',
+        code: 'PLACEMENT_FETCH_FAILED',
+      } satisfies ApiError)
     }
   })
 

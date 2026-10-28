@@ -35,6 +35,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { ApiRequestError, createInquiry } from '@/lib/api'
 import { formatInquiryDate } from '@/lib/inquiries'
+import { apiErrorText, fieldError } from '@/lib/messages'
 
 // All user-visible strings for this dialog, in one place for the future translation task (KAN-19).
 const copy = {
@@ -134,7 +135,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           }
         }
       }
-      toast.error(error.message)
+      toast.error(apiErrorText(error))
     },
   })
 
@@ -164,7 +165,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
               />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
             </Field>
           )}
         />
@@ -185,7 +186,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 aria-invalid={fieldState.invalid}
               />
               <FieldDescription>{copy.phoneHint}</FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
             </Field>
           )}
         />
@@ -204,7 +205,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
               />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
             </Field>
           )}
         />
@@ -224,7 +225,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                   disabled={isSending}
                   aria-invalid={fieldState.invalid}
                 />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
               </Field>
             )}
           />
@@ -255,7 +256,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                     ))}
                   </SelectContent>
                 </Select>
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
               </Field>
             )}
           />
@@ -282,7 +283,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
               >
                 {messageLength}/{MESSAGE_MAX_LENGTH}
               </FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
             </Field>
           )}
         />
