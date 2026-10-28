@@ -1,4 +1,5 @@
 import {
+  LISTING_LIMITS,
   MESSAGE_MAX_LENGTH,
   MESSAGE_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
@@ -20,6 +21,15 @@ const VALIDATION_VALUES: Partial<Record<MessageKey, Values>> = {
   'validation.password.tooLong': { max: PASSWORD_MAX_LENGTH },
   'validation.message.tooShort': { min: MESSAGE_MIN_LENGTH },
   'validation.message.tooLong': { max: MESSAGE_MAX_LENGTH },
+  'validation.title.length': { min: LISTING_LIMITS.titleMin, max: LISTING_LIMITS.titleMax },
+  'validation.description.tooLong': { max: LISTING_LIMITS.descriptionMax },
+  'validation.address.length': { min: LISTING_LIMITS.addressMin, max: LISTING_LIMITS.addressMax },
+  'validation.city.length': { min: LISTING_LIMITS.cityMin, max: LISTING_LIMITS.cityMax },
+  'validation.price.range': {
+    min: LISTING_LIMITS.priceMin.toLocaleString('en'),
+    max: LISTING_LIMITS.priceMax.toLocaleString('en'),
+  },
+  'validation.size.range': { max: LISTING_LIMITS.sizeMax },
 }
 
 /**

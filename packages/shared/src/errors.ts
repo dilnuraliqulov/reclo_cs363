@@ -20,6 +20,12 @@ export const errorCodeSchema = z.enum([
   'RATE_LIMITED',
   'MARKER_QUERY_FAILED',
   'PLACEMENT_FETCH_FAILED',
+  'LISTING_STATE_INVALID',
+  'PHOTO_REQUIRED',
+  'PHOTO_LIMIT',
+  'PHOTO_TOO_LARGE',
+  'PHOTO_TYPE_INVALID',
+  'PHOTO_NOT_FOUND',
   'INTERNAL',
 ])
 export type ErrorCode = z.infer<typeof errorCodeSchema>
@@ -43,6 +49,16 @@ export const VALIDATION_CODES = {
   cursorInvalid: 'validation.cursor.invalid',
   latOrder: 'validation.bounds.latOrder',
   lngOrder: 'validation.bounds.lngOrder',
+  required: 'validation.required',
+  titleLength: 'validation.title.length',
+  descriptionTooLong: 'validation.description.tooLong',
+  addressLength: 'validation.address.length',
+  cityLength: 'validation.city.length',
+  priceRange: 'validation.price.range',
+  latitudeRange: 'validation.latitude.range',
+  longitudeRange: 'validation.longitude.range',
+  sizeRange: 'validation.size.range',
+  nothingToUpdate: 'validation.update.empty',
 } as const
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)
