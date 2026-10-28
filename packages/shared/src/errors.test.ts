@@ -15,8 +15,18 @@ describe('apiErrorSchema', () => {
     expect(parsed.code).toBeUndefined()
   })
 
-  it('rejects a code outside the enum rather than passing a token through to the UI', () => {
-    expect(apiErrorSchema.safeParse({ error: 'x', code: 'MADE_UP' }).success).toBe(false)
+  it('drops a code it does not know, keeping the body and its English sentence', () => {
+    // A newer API can send a code this build has never heard of. Failing the whole parse would
+    // throw away `error` too and leave the reader with a generic apology, so the unknown code
+    // falls away and the sentence survives.
+    const parsed = apiErrorSchema.parse({ error: 'Vendor is on holiday', code: 'VENDOR_ON_LEAVE' })
+
+    expect(parsed.code).toBeUndefined()
+    expect(parsed.error).toBe('Vendor is on holiday')
+  })
+
+  it('still rejects a body with no error sentence at all', () => {
+    expect(apiErrorSchema.safeParse({ code: 'INTERNAL' }).success).toBe(false)
   })
 
   it('keeps field errors alongside the code', () => {

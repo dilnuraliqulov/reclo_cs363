@@ -54,7 +54,12 @@ export const apiErrorSchema = z.object({
    * be shown when `code` is present.
    */
   error: z.string(),
-  code: errorCodeSchema.optional(),
+  /**
+   * `.catch` rather than a plain `.optional()`: a client built against an older build of this
+   * package must not lose the whole body because the server has since learned a new code. An
+   * unrecognised code becomes `undefined`, and the reader falls back to `error` (KAN-79).
+   */
+  code: errorCodeSchema.optional().catch(undefined),
   fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
 })
 

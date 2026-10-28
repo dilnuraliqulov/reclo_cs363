@@ -321,6 +321,13 @@ English `error` string until it lands, so neither side waits on the other.
 - Error codes end to end: a route returning `DUPLICATE_INQUIRY` renders the Russian sentence, and an
   unknown code falls back to the response's `error` string rather than rendering the code.
 
+**What KAN-79 found.** The last item above did not hold. `apiErrorSchema` validated `code` against
+the enum, so a code from a newer API failed the whole body and the client threw away the server's
+`error` sentence along with it, showing a generic apology instead. `code` is now
+`errorCodeSchema.optional().catch(undefined)`: an unrecognised code falls away, the sentence
+survives, and the reader gets English rather than nothing. This is the only production change in a
+testing subtask, and it is here because a test asked for the behaviour the design had promised.
+
 ## Open questions
 
 - **Is `uz` the right default, or should a first-time visitor get what their browser asks for with no
