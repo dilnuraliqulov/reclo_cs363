@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Activity, Layers, List, Map as MapIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthControls } from '@/components/auth/AuthControls'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
 import { Button } from '@/components/ui/button'
 import { PlacementMap, type MapBounds } from '@/components/map/PlacementMap'
 import { PlacementDetailModal } from '@/components/placements/PlacementDetailModal'
@@ -182,6 +183,7 @@ export function PlacementsDiscoveryPage() {
             {healthCheck.isPending ? 'Checking…' : 'Check API'}
           </Button>
 
+          <LanguageSwitcher />
           <AuthControls />
         </div>
       </header>

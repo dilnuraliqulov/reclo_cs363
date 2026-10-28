@@ -33,34 +33,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { LocaleContextValue } from '@/i18n/context'
+import { useLocale, useT } from '@/i18n/useLocale'
 import { ApiRequestError, createInquiry } from '@/lib/api'
 import { formatInquiryDate } from '@/lib/inquiries'
-import { apiErrorText, fieldError } from '@/lib/messages'
-
-// All user-visible strings for this dialog, in one place for the future translation task (KAN-19).
-const copy = {
-  title: 'Send an inquiry',
-  name: 'Your name',
-  phone: 'Phone',
-  phoneHint: 'Vendors usually reply on Telegram',
-  email: 'Email',
-  start: 'Preferred start',
-  duration: 'Duration',
-  durationPlaceholder: 'Select duration',
-  month: 'month',
-  months: 'months',
-  message: 'Message',
-  cancel: 'Cancel',
-  submit: 'Send inquiry',
-  submitting: 'Sending…',
-  success: 'Inquiry sent. The vendor will contact you shortly.',
-  signedOutTitle: 'Sign in to send an inquiry',
-  signedOutBody: 'Inquiries are tied to your account, so you can follow them up later.',
-  signIn: 'Sign in',
-  duplicate: 'You already have an open inquiry for this placement',
-  duplicateOn: (date: string) =>
-    `You already have an open inquiry for this placement, sent ${date}.`,
-}
+import { useMessages } from '@/lib/messages'
 
 const DURATION_OPTIONS = [1, 3, 6, 12, DURATION_MAX_MONTHS] as const
 
@@ -81,11 +58,16 @@ interface InquiryFormProps {
 }
 
 /** Pulls the 409 date out of the error body, when the server sent one. */
-function duplicateMessage(error: unknown): string | null {
+function duplicateMessage(
+  error: unknown,
+  { locale, t }: Pick<LocaleContextValue, 'locale' | 't'>,
+): string | null {
   if (!(error instanceof ApiRequestError) || error.status !== 409) return null
   const parsed = inquiryConflictSchema.safeParse(error.body)
   const sentAt = parsed.success ? parsed.data.existingInquiryCreatedAt : undefined
-  return sentAt ? copy.duplicateOn(formatInquiryDate(sentAt)) : copy.duplicate
+  return sentAt
+    ? t('inquiry.form.duplicateOn', { date: formatInquiryDate(sentAt, locale) })
+    : t('inquiry.form.duplicate')
 }
 
 /**
@@ -93,6 +75,8 @@ function duplicateMessage(error: unknown): string | null {
  * account email and nothing has to reset them later.
  */
 function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: InquiryFormProps) {
+  const { locale, t } = useLocale()
+  const { apiErrorText, fieldError } = useMessages()
   // Set on a 409: the submit stays disabled, because retrying cannot succeed.
   const [duplicate, setDuplicate] = useState<string | null>(null)
 
@@ -114,10 +98,10 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
     mutationFn: createInquiry,
     onSuccess: () => {
       onSent()
-      toast.success(copy.success)
+      toast.success(t('inquiry.form.success'))
     },
     onError: (error) => {
-      const conflict = duplicateMessage(error)
+      const conflict = duplicateMessage(error, { locale, t })
       if (conflict) {
         setDuplicate(conflict)
         return
@@ -157,7 +141,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="inquiry-name">{copy.name}</FieldLabel>
+              <FieldLabel htmlFor="inquiry-name">{t('inquiry.form.name')}</FieldLabel>
               <Input
                 {...field}
                 id="inquiry-name"
@@ -175,7 +159,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="inquiry-phone">{copy.phone}</FieldLabel>
+              <FieldLabel htmlFor="inquiry-phone">{t('inquiry.form.phone')}</FieldLabel>
               <Input
                 {...field}
                 id="inquiry-phone"
@@ -185,7 +169,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
               />
-              <FieldDescription>{copy.phoneHint}</FieldDescription>
+              <FieldDescription>{t('inquiry.form.phoneHint')}</FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
             </Field>
           )}
@@ -196,7 +180,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="inquiry-email">{copy.email}</FieldLabel>
+              <FieldLabel htmlFor="inquiry-email">{t('common.email')}</FieldLabel>
               <Input
                 {...field}
                 id="inquiry-email"
@@ -216,7 +200,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="inquiry-start">{copy.start}</FieldLabel>
+                <FieldLabel htmlFor="inquiry-start">{t('inquiry.form.start')}</FieldLabel>
                 <Input
                   {...field}
                   value={field.value ?? ''}
@@ -235,7 +219,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="inquiry-duration">{copy.duration}</FieldLabel>
+                <FieldLabel htmlFor="inquiry-duration">{t('inquiry.form.duration')}</FieldLabel>
                 <Select
                   value={field.value ? String(field.value) : undefined}
                   onValueChange={(value) => field.onChange(Number(value))}
@@ -246,12 +230,12 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                     aria-invalid={fieldState.invalid}
                     className="w-full"
                   >
-                    <SelectValue placeholder={copy.durationPlaceholder} />
+                    <SelectValue placeholder={t('inquiry.form.durationPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {DURATION_OPTIONS.map((months) => (
                       <SelectItem key={months} value={String(months)}>
-                        {months} {months === 1 ? copy.month : copy.months}
+                        {t('inquiry.months', { count: months })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -267,7 +251,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="inquiry-message">{copy.message}</FieldLabel>
+              <FieldLabel htmlFor="inquiry-message">{t('inquiry.form.message')}</FieldLabel>
               <Textarea
                 {...field}
                 id="inquiry-message"
@@ -293,10 +277,10 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
 
       <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSending}>
-          {copy.cancel}
+          {t('inquiry.form.cancel')}
         </Button>
         <Button type="submit" disabled={isSending || duplicate !== null}>
-          {isSending ? copy.submitting : copy.submit}
+          {isSending ? t('inquiry.form.submitting') : t('inquiry.form.submit')}
         </Button>
       </DialogFooter>
     </form>
@@ -304,6 +288,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
 }
 
 export function InquiryFormDialog({ placement, open, onOpenChange }: InquiryFormDialogProps) {
+  const t = useT()
   const { user } = useAuth()
   const location = useLocation()
   // A 401 mid-session swaps the body to the sign-in prompt rather than silently failing.
@@ -313,7 +298,7 @@ export function InquiryFormDialog({ placement, open, onOpenChange }: InquiryForm
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogTitle>{t('inquiry.form.title')}</DialogTitle>
           <DialogDescription>
             {placement.title} · {placement.address}
           </DialogDescription>
@@ -322,12 +307,12 @@ export function InquiryFormDialog({ placement, open, onOpenChange }: InquiryForm
         {!user || sessionLost ? (
           <div className="space-y-4 py-2">
             <div className="space-y-1">
-              <p className="font-medium">{copy.signedOutTitle}</p>
-              <p className="text-sm text-muted-foreground">{copy.signedOutBody}</p>
+              <p className="font-medium">{t('inquiry.form.signedOutTitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('inquiry.form.signedOutBody')}</p>
             </div>
             <Button asChild>
               <Link to={`/sign-in?next=${encodeURIComponent(location.pathname)}`}>
-                {copy.signIn}
+                {t('auth.signIn')}
               </Link>
             </Button>
           </div>

@@ -3,25 +3,16 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
-
-// All user-visible strings for these controls, in one place for the future translation task.
-const copy = {
-  signedInAs: 'Signed in as',
-  signOut: 'Sign out',
-  signingOut: 'Signing out…',
-  signOutFailed: 'Could not sign out. Please try again.',
-  inquiries: 'My inquiries',
-  signIn: 'Sign in',
-  signUp: 'Sign up',
-}
+import { useT } from '@/i18n/useLocale'
 
 /** Shows the signed-in email with a sign-out button, or sign-in and sign-up links. */
 export function AuthControls() {
   const { user, isLoading, signOut } = useAuth()
+  const t = useT()
 
   const signOutMutation = useMutation({
     mutationFn: signOut,
-    onError: () => toast.error(copy.signOutFailed),
+    onError: () => toast.error(t('auth.signOutFailed')),
   })
 
   if (user) {
@@ -30,11 +21,11 @@ export function AuthControls() {
         {/* Clients have an inquiry history; vendors and admins have their own screens. */}
         {user.role === 'CLIENT' && (
           <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
-            <Link to="/inquiries">{copy.inquiries}</Link>
+            <Link to="/inquiries">{t('auth.myInquiries')}</Link>
           </Button>
         )}
         <span className="hidden text-xs sm:inline">
-          {copy.signedInAs} <span className="font-medium">{user.email}</span>
+          {t('auth.signedInAs')} <span className="font-medium">{user.email}</span>
         </span>
         <Button
           variant="outline"
@@ -43,7 +34,7 @@ export function AuthControls() {
           onClick={() => signOutMutation.mutate()}
           disabled={signOutMutation.isPending}
         >
-          {signOutMutation.isPending ? copy.signingOut : copy.signOut}
+          {signOutMutation.isPending ? t('auth.signingOut') : t('auth.signOut')}
         </Button>
       </div>
     )
@@ -52,10 +43,10 @@ export function AuthControls() {
   return (
     <div className="flex items-center gap-2">
       <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-        <Link to="/sign-in">{copy.signIn}</Link>
+        <Link to="/sign-in">{t('auth.signIn')}</Link>
       </Button>
       <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
-        <Link to="/sign-up">{copy.signUp}</Link>
+        <Link to="/sign-up">{t('auth.signUp')}</Link>
       </Button>
     </div>
   )

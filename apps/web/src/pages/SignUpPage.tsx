@@ -17,23 +17,14 @@ import {
 } from '@/components/ui/card'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
+import { useT } from '@/i18n/useLocale'
 import { ApiRequestError, register } from '@/lib/api'
-import { apiErrorText, fieldError } from '@/lib/messages'
-
-// All user-visible strings for this page, in one place for the future translation task.
-const copy = {
-  title: 'Create your account',
-  description: 'Sign up to browse and request billboards',
-  email: 'Email',
-  password: 'Password',
-  passwordHint: 'At least 8 characters',
-  submit: 'Sign up',
-  submitting: 'Creating account…',
-  haveAccount: 'Already have an account?',
-  signIn: 'Sign in',
-}
+import { useMessages } from '@/lib/messages'
 
 export function SignUpPage() {
+  const t = useT()
+  const { apiErrorText, fieldError } = useMessages()
   const { setUser } = useAuth()
   const navigate = useNavigate()
   // Set when the client was sent here from a placement, so they land back on it.
@@ -64,11 +55,16 @@ export function SignUpPage() {
   })
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
+    <main className="relative flex min-h-svh items-center justify-center p-6">
+      {/* These pages have no header, and a visitor who cannot read them has to be able
+          to switch language before signing in. */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{copy.title}</CardTitle>
-          <CardDescription>{copy.description}</CardDescription>
+          <CardTitle>{t('signUp.title')}</CardTitle>
+          <CardDescription>{t('signUp.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit((values) => signUp.mutate(values))} noValidate>
@@ -78,7 +74,7 @@ export function SignUpPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="sign-up-email">{copy.email}</FieldLabel>
+                    <FieldLabel htmlFor="sign-up-email">{t('common.email')}</FieldLabel>
                     <Input
                       {...field}
                       id="sign-up-email"
@@ -96,7 +92,7 @@ export function SignUpPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="sign-up-password">{copy.password}</FieldLabel>
+                    <FieldLabel htmlFor="sign-up-password">{t('common.password')}</FieldLabel>
                     <Input
                       {...field}
                       id="sign-up-password"
@@ -105,21 +101,21 @@ export function SignUpPage() {
                       disabled={signUp.isPending}
                       aria-invalid={fieldState.invalid}
                     />
-                    <FieldDescription>{copy.passwordHint}</FieldDescription>
+                    <FieldDescription>{t('signUp.passwordHint')}</FieldDescription>
                     {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
                   </Field>
                 )}
               />
               <Button type="submit" disabled={signUp.isPending}>
-                {signUp.isPending ? copy.submitting : copy.submit}
+                {signUp.isPending ? t('signUp.submitting') : t('auth.signUp')}
               </Button>
             </FieldGroup>
           </form>
         </CardContent>
         <CardFooter className="justify-center gap-1 text-sm text-muted-foreground">
-          {copy.haveAccount}
+          {t('signUp.haveAccount')}
           <Link to={otherPath} className="font-medium text-foreground underline underline-offset-4">
-            {copy.signIn}
+            {t('auth.signIn')}
           </Link>
         </CardFooter>
       </Card>

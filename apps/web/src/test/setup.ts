@@ -4,6 +4,8 @@ import { afterEach } from 'vitest'
 
 afterEach(() => {
   cleanup()
+  // The locale provider remembers a choice here, so one test's language must not reach the next.
+  window.localStorage.clear()
 })
 
 // jsdom has no matchMedia; sonner and next-themes call it.

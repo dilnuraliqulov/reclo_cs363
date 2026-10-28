@@ -3,6 +3,7 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { GuestOnly } from '@/auth/GuestOnly'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { Toaster } from '@/components/ui/sonner'
+import { LocaleProvider } from '@/i18n/LocaleProvider'
 import { InquiryHistoryPage } from '@/pages/InquiryHistoryPage'
 import { PlacementsDiscoveryPage } from '@/pages/PlacementsDiscoveryPage'
 import { SignInPage } from '@/pages/SignInPage'
@@ -10,19 +11,21 @@ import { SignUpPage } from '@/pages/SignUpPage'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<PlacementsDiscoveryPage />} />
-        <Route path="/placements" element={<PlacementsDiscoveryPage />} />
-        <Route element={<RequireAuth />}>
-          <Route path="/inquiries" element={<InquiryHistoryPage />} />
-        </Route>
-        <Route element={<GuestOnly />}>
-          <Route path="/sign-in" element={<SignInPage />} />
-          <Route path="/sign-up" element={<SignUpPage />} />
-        </Route>
-      </Routes>
-      <Toaster />
-    </AuthProvider>
+    <LocaleProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<PlacementsDiscoveryPage />} />
+          <Route path="/placements" element={<PlacementsDiscoveryPage />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/inquiries" element={<InquiryHistoryPage />} />
+          </Route>
+          <Route element={<GuestOnly />}>
+            <Route path="/sign-in" element={<SignInPage />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
+          </Route>
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </LocaleProvider>
   )
 }
