@@ -218,6 +218,12 @@ export function createVendorPlacementRouter({
           upload(req, res, (error: unknown) => {
             if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
               resolve('too_large')
+            } else if (
+              error instanceof multer.MulterError &&
+              error.code === 'LIMIT_UNEXPECTED_FILE'
+            ) {
+              // A file under another field name: as far as this route goes, no photo was sent.
+              resolve(undefined)
             } else if (error) {
               resolve('bad_upload')
             } else {

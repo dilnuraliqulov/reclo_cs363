@@ -96,7 +96,7 @@ describe('createPlacementRequestSchema', () => {
   })
 
   it('reports a missing required field with the required code', () => {
-    const { title: _title, ...withoutTitle } = valid
+    const withoutTitle = { ...valid, title: undefined }
 
     expect(messages(withoutTitle, createPlacementRequestSchema, 'title')).toEqual([
       VALIDATION_CODES.required,
