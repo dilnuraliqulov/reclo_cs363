@@ -203,6 +203,7 @@ the API map to codes one for one:
 | `NOT_AUTHENTICATED`      | Not authenticated                                   |
 | `FORBIDDEN`              | Forbidden                                           |
 | `INVALID_CREDENTIALS`    | Invalid email or password                           |
+| `EMAIL_TAKEN`            | Email is already registered                         |
 | `INVALID_INPUT`          | Invalid input                                       |
 | `INVALID_QUERY`          | Invalid query parameters                            |
 | `MALFORMED_JSON`         | Malformed JSON                                      |
@@ -215,7 +216,9 @@ the API map to codes one for one:
 | `INTERNAL`               | Something went wrong                                |
 
 `errorCodeSchema` is a shared Zod enum, so the web's `error.*` catalog keys and the API's codes
-cannot drift apart without a type error. `ApiRequestError` already carries the parsed body, so it
+cannot drift apart without a type error. Field-level codes live in the separate `validation.*`
+namespace and are listed in `VALIDATION_CODES`, because a field error and a whole-response error are
+shown in different places; `validation.email.taken` is the field counterpart of `EMAIL_TAKEN`. `ApiRequestError` already carries the parsed body, so it
 gains a `code` field and the call sites that currently show `error.message` show `t(...)` instead.
 
 ### Validation messages

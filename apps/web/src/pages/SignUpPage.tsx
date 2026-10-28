@@ -18,6 +18,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ApiRequestError, register } from '@/lib/api'
+import { apiErrorText, fieldError } from '@/lib/messages'
 
 // All user-visible strings for this page, in one place for the future translation task.
 const copy = {
@@ -58,7 +59,7 @@ export function SignUpPage() {
           }
         }
       }
-      toast.error(error.message)
+      toast.error(apiErrorText(error))
     },
   })
 
@@ -86,7 +87,7 @@ export function SignUpPage() {
                       disabled={signUp.isPending}
                       aria-invalid={fieldState.invalid}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
                   </Field>
                 )}
               />
@@ -105,7 +106,7 @@ export function SignUpPage() {
                       aria-invalid={fieldState.invalid}
                     />
                     <FieldDescription>{copy.passwordHint}</FieldDescription>
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
                   </Field>
                 )}
               />

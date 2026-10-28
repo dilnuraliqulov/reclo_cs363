@@ -1,4 +1,4 @@
-import { INQUIRY_PAGE_SIZE, type InquiryHistoryItem } from '@reclo/shared'
+import { INQUIRY_PAGE_SIZE, VALIDATION_CODES, type InquiryHistoryItem } from '@reclo/shared'
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../app'
@@ -210,7 +210,8 @@ describe('GET /api/inquiries', () => {
         .set('Cookie', cookie)
 
       expect(response.status).toBe(400)
-      expect(response.body.fieldErrors.cursor).toEqual(['Invalid cursor'])
+      expect(response.body.code).toBe('INVALID_INPUT')
+      expect(response.body.fieldErrors.cursor).toEqual([VALIDATION_CODES.cursorInvalid])
       expect(store.listClientInquiries).not.toHaveBeenCalled()
     })
   })

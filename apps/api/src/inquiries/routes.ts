@@ -2,6 +2,7 @@ import {
   createInquiryRequestSchema,
   DUPLICATE_WINDOW_DAYS,
   inquiryHistoryQuerySchema,
+  VALIDATION_CODES,
   type ApiError,
   type InquiryConflict,
   type InquiryHistoryResponse,
@@ -30,12 +31,16 @@ const PLACEMENT_NOT_FOUND = 'Placement not found'
 
 // A cursor the client did not get from a previous page. Answered as a 400 rather than a silent
 // reset to page one, which would look like the list restarting at random.
-const INVALID_CURSOR = 'Invalid cursor'
 
 const DUPLICATE_WINDOW_MS = DUPLICATE_WINDOW_DAYS * 24 * 60 * 60 * 1000
 
 function validationError(error: z.ZodError): ApiError {
-  return { error: 'Invalid input', fieldErrors: z.flattenError(error).fieldErrors }
+  return {
+    error: 'Invalid input',
+    code: 'INVALID_INPUT',
+    // Already codes, not sentences: these schemas are parsed by the web form too.
+    fieldErrors: z.flattenError(error).fieldErrors,
+  }
 }
 
 export function createInquiryRouter({
@@ -51,7 +56,10 @@ export function createInquiryRouter({
     limit: rateLimitMax,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    message: { error: 'Too many attempts, try again later' } satisfies ApiError,
+    message: {
+      error: 'Too many attempts, try again later',
+      code: 'RATE_LIMITED',
+    } satisfies ApiError,
   })
 
   router.get('/', requireAuth, requireRole('CLIENT'), async (req, res, next) => {
@@ -69,7 +77,8 @@ export function createInquiryRouter({
         if (!decoded) {
           res.status(400).json({
             error: 'Invalid input',
-            fieldErrors: { cursor: [INVALID_CURSOR] },
+            code: 'INVALID_INPUT',
+            fieldErrors: { cursor: [VALIDATION_CODES.cursorInvalid] },
           } satisfies ApiError)
           return
         }
@@ -112,7 +121,9 @@ export function createInquiryRouter({
 
       const placement = await store.findActivePlacement(placementId)
       if (!placement) {
-        res.status(404).json({ error: PLACEMENT_NOT_FOUND } satisfies ApiError)
+        res
+          .status(404)
+          .json({ error: PLACEMENT_NOT_FOUND, code: 'PLACEMENT_NOT_FOUND' } satisfies ApiError)
         return
       }
 
@@ -125,6 +136,7 @@ export function createInquiryRouter({
         if (open.createdAt >= cutoff) {
           res.status(409).json({
             error: DUPLICATE_ERROR,
+            code: 'DUPLICATE_INQUIRY',
             existingInquiryCreatedAt: open.createdAt.toISOString(),
           } satisfies InquiryConflict)
           return
@@ -153,7 +165,9 @@ export function createInquiryRouter({
         res.status(201).json({ inquiry } satisfies InquiryResponse)
       } catch (error) {
         if (error instanceof OpenInquiryExistsError) {
-          res.status(409).json({ error: DUPLICATE_ERROR } satisfies InquiryConflict)
+          res
+            .status(409)
+            .json({ error: DUPLICATE_ERROR, code: 'DUPLICATE_INQUIRY' } satisfies InquiryConflict)
           return
         }
         throw error

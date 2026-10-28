@@ -68,7 +68,7 @@ describe('GET /api/placements/map', () => {
       const res = await request(app).get('/api/placements/not-a-uuid')
 
       expect(res.status).toBe(400)
-      expect(res.body).toEqual({ error: 'Invalid placement id' })
+      expect(res.body).toEqual({ error: 'Invalid placement id', code: 'INVALID_PLACEMENT_ID' })
     })
 
     it('returns 404 when the placement is not found', async () => {
@@ -79,7 +79,7 @@ describe('GET /api/placements/map', () => {
       const res = await request(app).get(`/api/placements/${sampleMarker.id}`)
 
       expect(res.status).toBe(404)
-      expect(res.body).toEqual({ error: 'Placement not found' })
+      expect(res.body).toEqual({ error: 'Placement not found', code: 'PLACEMENT_NOT_FOUND' })
       expect(store.findPlacementDetail).toHaveBeenCalledWith(sampleMarker.id)
     })
 
@@ -103,6 +103,7 @@ describe('GET /api/placements/map', () => {
       expect(res.status).toBe(500)
       expect(res.body).toEqual({
         error: 'Failed to fetch placement detail',
+        code: 'PLACEMENT_FETCH_FAILED',
       })
     })
   })
@@ -218,6 +219,7 @@ describe('GET /api/placements/map', () => {
     expect(res.status).toBe(500)
     expect(res.body).toEqual({
       error: 'Failed to query map markers',
+      code: 'MARKER_QUERY_FAILED',
     })
   })
 })

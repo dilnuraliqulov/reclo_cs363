@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { VALIDATION_CODES } from './errors'
 
 export const placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT'])
 export type PlacementType = z.infer<typeof placementTypeSchema>
@@ -21,11 +22,11 @@ export const mapBoundsQuerySchema = z
     maxPrice: z.coerce.number().int().positive().optional(),
   })
   .refine((data) => data.minLat <= data.maxLat, {
-    message: 'minLat must be less than or equal to maxLat',
+    message: VALIDATION_CODES.latOrder,
     path: ['minLat'],
   })
   .refine((data) => data.minLng <= data.maxLng, {
-    message: 'minLng must be less than or equal to maxLng',
+    message: VALIDATION_CODES.lngOrder,
     path: ['minLng'],
   })
 export type MapBoundsQuery = z.infer<typeof mapBoundsQuerySchema>
