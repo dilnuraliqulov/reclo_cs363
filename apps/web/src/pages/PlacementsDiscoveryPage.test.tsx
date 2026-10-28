@@ -77,6 +77,8 @@ describe('PlacementsDiscoveryPage', () => {
       height: null,
       lighting: false,
       photos: billboard.photo ? [billboard.photo] : [],
+      ledDurationSeconds: null,
+      ledPlaysPerDay: null,
       vendorId: 'vendor-123',
       createdAt: '2026-10-10T10:00:00.000Z',
       updatedAt: '2026-10-12T15:00:00.000Z',
@@ -235,7 +237,7 @@ describe('PlacementsDiscoveryPage', () => {
     renderWithProviders()
     await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
 
-    await user.click(screen.getByRole('button', { name: 'Wall Mural' }))
+    await user.click(screen.getByRole('button', { name: 'LED Screen' }))
 
     await waitFor(() =>
       expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({
@@ -243,6 +245,24 @@ describe('PlacementsDiscoveryPage', () => {
         maxLat: 41.6,
         minLng: 69.0,
         maxLng: 69.6,
+      }),
+    )
+  })
+
+  it('sends LED-specific filters only for LED screens', async () => {
+    const user = userEvent.setup()
+    renderWithProviders()
+    await waitFor(() => expect(fetchMarkersMock).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'LED Screen' }))
+    await user.type(screen.getByPlaceholderText('LED duration (sec)'), '15')
+    await user.type(screen.getByPlaceholderText('LED plays/day'), '120')
+
+    await waitFor(() =>
+      expect(fetchMarkersMock.mock.lastCall?.[0]).toMatchObject({
+        type: 'LED_SCREEN',
+        ledDurationSeconds: 15,
+        ledPlaysPerDay: 120,
       }),
     )
   })

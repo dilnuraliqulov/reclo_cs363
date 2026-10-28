@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { VALIDATION_CODES } from './errors'
 
-export const placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT'])
+export const placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN'])
 export type PlacementType = z.infer<typeof placementTypeSchema>
 
 export const placementStatusSchema = z.enum(['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED'])
@@ -20,6 +20,8 @@ export const mapBoundsQuerySchema = z
     city: z.string().trim().optional(),
     minPrice: z.coerce.number().int().nonnegative().optional(),
     maxPrice: z.coerce.number().int().positive().optional(),
+    ledDurationSeconds: z.coerce.number().int().positive().optional(),
+    ledPlaysPerDay: z.coerce.number().int().positive().optional(),
   })
   .refine((data) => data.minLat <= data.maxLat, {
     message: VALIDATION_CODES.latOrder,
@@ -28,6 +30,13 @@ export const mapBoundsQuerySchema = z
   .refine((data) => data.minLng <= data.maxLng, {
     message: VALIDATION_CODES.lngOrder,
     path: ['minLng'],
+  })
+  .refine((data) => {
+    if (data.ledDurationSeconds === undefined && data.ledPlaysPerDay === undefined) return true
+    return data.type === 'LED_SCREEN'
+  }, {
+    message: 'LED attributes can only be filtered for LED_SCREEN placements',
+    path: ['type'],
   })
 export type MapBoundsQuery = z.infer<typeof mapBoundsQuerySchema>
 
@@ -58,6 +67,8 @@ export const placementDetailSchema = placementMarkerSchema.extend({
   height: z.number().nullable(),
   lighting: z.boolean(),
   photos: z.array(z.string().url()),
+  ledDurationSeconds: z.number().int().positive().nullable(),
+  ledPlaysPerDay: z.number().int().positive().nullable(),
   vendorId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

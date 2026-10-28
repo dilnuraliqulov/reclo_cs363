@@ -57,13 +57,11 @@ describe('formatPlacementType', () => {
   it('maps every enum member to a human label', () => {
     expect(formatPlacementType('BILLBOARD')).toBe('Billboard')
     expect(formatPlacementType('LED_SCREEN')).toBe('LED Screen')
-    expect(formatPlacementType('WALL_MURAL')).toBe('Wall Mural')
-    expect(formatPlacementType('CITY_FORMAT')).toBe('City Format')
   })
 })
 
 describe('getPlacementTypeColor', () => {
-  const types: PlacementType[] = ['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT']
+  const types: PlacementType[] = ['BILLBOARD', 'LED_SCREEN']
 
   it('returns badge, text and dot classes for every type', () => {
     for (const type of types) {

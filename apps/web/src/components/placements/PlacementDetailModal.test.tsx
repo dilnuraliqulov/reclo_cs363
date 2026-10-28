@@ -28,6 +28,8 @@ const detail: PlacementDetail = {
   height: 3,
   lighting: true,
   photos: ['https://example.com/photo.jpg', 'https://example.com/photo-2.jpg'],
+  ledDurationSeconds: null,
+  ledPlaysPerDay: null,
   vendorId: 'vendor-123',
   createdAt: '2026-10-10T10:00:00.000Z',
   updatedAt: '2026-10-12T15:00:00.000Z',
@@ -221,5 +223,21 @@ describe('PlacementDetailModal', () => {
       'src',
       'https://example.com/photo-2.jpg',
     )
+  })
+
+  it('shows LED-specific attributes for LED placements', () => {
+    render(
+      <PlacementDetailModal
+        marker={{ ...marker, type: 'LED_SCREEN' }}
+        detail={{ ...detail, type: 'LED_SCREEN', ledDurationSeconds: 15, ledPlaysPerDay: 120 }}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('LED slot duration')).toBeInTheDocument()
+    expect(screen.getByText('15s')).toBeInTheDocument()
+    expect(screen.getByText('LED plays/day')).toBeInTheDocument()
+    expect(screen.getByText('120')).toBeInTheDocument()
   })
 })
