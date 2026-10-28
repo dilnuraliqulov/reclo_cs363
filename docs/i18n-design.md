@@ -61,7 +61,8 @@ Not translated:
 - **Plural categories, not a singular/plural pair.** Russian has three for counted nouns — 1 месяц,
   3 месяца, 5 месяцев — and the existing `durationMonths === 1 ? copy.month : copy.months` cannot
   express it. A counted entry is therefore an object keyed by `Intl.PluralRules` category, not a
-  string. Uzbek needs only `other`; English and Uzbek entries stay one line each.
+  string. CLDR gives Uzbek and English two categories each (`one`, `other`), and Uzbek fills both
+  with the same words because the noun does not inflect after a numeral.
 - **The server returns codes; the client owns the words.** Localizing on the server means the API
   guesses the reader's language from a header, and means the same failure reads differently in a log
   and on screen. Instead each error response gains a stable `code`, and the web maps the code to
@@ -123,8 +124,10 @@ Node:
 | 5   | other | many | other |
 | 21  | other | one  | other |
 
-So Russian needs `one`, `few` and `many`; `21 месяц` taking the same form as `1 месяц` is exactly the
-case a hand-written `n === 1` check gets wrong. The only counted nouns in the UI today are campaign
+So Russian needs `one`, `few` and `many`, plus `other` for fractions such as 1.5; `21 месяц` taking
+the same form as `1 месяц` is exactly the case a hand-written `n === 1` check gets wrong. Because
+`other` exists in every locale, it is also the safe fallback when a number lands in a category the
+catalog does not list. The only counted nouns in the UI today are campaign
 duration in months (the inquiry dialog and the history row) and the filter bar's applied-filter
 count, but the mechanism has to exist before the first Russian string is written.
 
@@ -177,7 +180,8 @@ behaviour that a hand-rolled menu would not.
   re-renders and React swaps the strings.
 
 Both `InquiryHistoryPage` and `PlacementsDiscoveryPage` carry their own hand-written header, so the
-switcher is placed twice. That duplication predates this task and is left alone here; pulling the two
+switcher is placed twice. The sign-in and sign-up pages have no header at all, so it sits at their
+top right: a visitor who cannot read the form has to be able to switch before signing in. That duplication predates this task and is left alone here; pulling the two
 headers into one component is a worthwhile cleanup but not one to bundle into a translation change.
 
 ## API changes (KAN-77)
@@ -287,6 +291,9 @@ The screens split cleanly into work that is safe now and work that is not:
    JSX line that holds text, which is the worst possible diff to put under someone else's open
    branch. **KAN-78 should do groups 1 and 2, and take group 3 only after KAN-10 and KAN-12 land**;
    if they have not landed, group 3 moves to a follow-up subtask rather than blocking the rest.
+   The switcher itself is still placed in that page's header in group 2, as a one-line insertion:
+   leaving the app's main page with no way to change language would be worse than leaving some of
+   its own strings in English for a while.
 
 KAN-77 (error codes) is independent of all three and can go first or last; the web falls back to the
 English `error` string until it lands, so neither side waits on the other.

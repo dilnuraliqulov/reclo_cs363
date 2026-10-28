@@ -3,31 +3,26 @@ import { ChevronDown } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/useLocale'
+import type { LocaleContextValue } from '@/i18n/context'
 import { formatInquiryDate, formatUzPhone } from '@/lib/inquiries'
+import { cn } from '@/lib/utils'
 import { InquiryStatusBadge } from './InquiryStatusBadge'
 
-// All user-visible strings for this row, in one place for the future translation task (KAN-19).
-const copy = {
-  message: 'Message',
-  campaign: 'Campaign',
-  contact: 'Contact',
-  start: 'Preferred start',
-  duration: 'Duration',
-  month: 'month',
-  months: 'months',
-  unavailable: 'This placement is no longer listed',
-  deleted: 'Placement removed',
-}
-
-function campaignSummary(inquiry: InquiryHistoryItem): string | null {
+function campaignSummary(
+  inquiry: InquiryHistoryItem,
+  { locale, t }: Pick<LocaleContextValue, 'locale' | 't'>,
+): string | null {
   const parts: string[] = []
   if (inquiry.desiredStartDate) {
-    parts.push(`${copy.start}: ${formatInquiryDate(inquiry.desiredStartDate)}`)
+    parts.push(`${t('inquiry.row.start')}: ${formatInquiryDate(inquiry.desiredStartDate, locale)}`)
   }
   if (inquiry.durationMonths !== null) {
-    const unit = inquiry.durationMonths === 1 ? copy.month : copy.months
-    parts.push(`${copy.duration}: ${inquiry.durationMonths} ${unit}`)
+    // Russian puts 1 and 21 in one form, 2–4 in another and 5–20 in a third, so the count goes to
+    // the catalog rather than being glued to a singular/plural pair here.
+    parts.push(
+      `${t('inquiry.row.duration')}: ${t('inquiry.months', { count: inquiry.durationMonths })}`,
+    )
   }
   return parts.length > 0 ? parts.join(' · ') : null
 }
@@ -36,8 +31,9 @@ function campaignSummary(inquiry: InquiryHistoryItem): string | null {
 export function InquiryHistoryRow({ inquiry }: { inquiry: InquiryHistoryItem }) {
   const [isOpen, setIsOpen] = useState(false)
   const panelId = useId()
+  const { locale, t } = useLocale()
   const { placement } = inquiry
-  const campaign = campaignSummary(inquiry)
+  const campaign = campaignSummary(inquiry, { locale, t })
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} asChild>
@@ -54,32 +50,40 @@ export function InquiryHistoryRow({ inquiry }: { inquiry: InquiryHistoryItem }) 
             aria-hidden
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{placement?.title ?? copy.deleted}</p>
+            <p className="truncate text-sm font-medium">
+              {placement?.title ?? t('inquiry.row.deleted')}
+            </p>
             <p className="truncate text-xs text-muted-foreground">{placement?.city ?? ''}</p>
           </div>
           <InquiryStatusBadge status={inquiry.status} />
           <span className="shrink-0 text-xs text-muted-foreground">
-            {formatInquiryDate(inquiry.createdAt)}
+            {formatInquiryDate(inquiry.createdAt, locale)}
           </span>
         </CollapsibleTrigger>
 
         <CollapsibleContent id={panelId}>
           <div className="space-y-3 border-t border-border/60 p-3 text-sm">
             <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">{copy.message}</p>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                {t('inquiry.row.message')}
+              </p>
               {/* Stored and rendered as plain text; nothing in this pipeline renders it as HTML. */}
               <p className="whitespace-pre-wrap">{inquiry.message}</p>
             </div>
 
             {campaign && (
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{copy.campaign}</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  {t('inquiry.row.campaign')}
+                </p>
                 <p>{campaign}</p>
               </div>
             )}
 
             <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">{copy.contact}</p>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                {t('inquiry.row.contact')}
+              </p>
               <p>
                 {inquiry.contactName} · {formatUzPhone(inquiry.contactPhone)} ·{' '}
                 {inquiry.contactEmail}
@@ -96,7 +100,7 @@ export function InquiryHistoryRow({ inquiry }: { inquiry: InquiryHistoryItem }) 
                 {placement.title}
               </Link>
             ) : (
-              <p className="text-xs text-muted-foreground">{copy.unavailable}</p>
+              <p className="text-xs text-muted-foreground">{t('inquiry.row.unavailable')}</p>
             )}
           </div>
         </CollapsibleContent>

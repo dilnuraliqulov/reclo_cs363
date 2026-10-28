@@ -17,22 +17,14 @@ import {
 } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
+import { useT } from '@/i18n/useLocale'
 import { ApiRequestError, login } from '@/lib/api'
-import { apiErrorText, fieldError } from '@/lib/messages'
-
-// All user-visible strings for this page, in one place for the future translation task.
-const copy = {
-  title: 'Welcome back',
-  description: 'Sign in to your account',
-  email: 'Email',
-  password: 'Password',
-  submit: 'Sign in',
-  submitting: 'Signing in…',
-  noAccount: 'No account yet?',
-  signUp: 'Sign up',
-}
+import { useMessages } from '@/lib/messages'
 
 export function SignInPage() {
+  const t = useT()
+  const { apiErrorText, fieldError } = useMessages()
   const { setUser } = useAuth()
   const navigate = useNavigate()
   // Set when the client was sent here from a placement, so they land back on it.
@@ -63,11 +55,16 @@ export function SignInPage() {
   })
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
+    <main className="relative flex min-h-svh items-center justify-center p-6">
+      {/* These pages have no header, and a visitor who cannot read them has to be able
+          to switch language before signing in. */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{copy.title}</CardTitle>
-          <CardDescription>{copy.description}</CardDescription>
+          <CardTitle>{t('signIn.title')}</CardTitle>
+          <CardDescription>{t('signIn.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit((values) => signIn.mutate(values))} noValidate>
@@ -77,7 +74,7 @@ export function SignInPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="sign-in-email">{copy.email}</FieldLabel>
+                    <FieldLabel htmlFor="sign-in-email">{t('common.email')}</FieldLabel>
                     <Input
                       {...field}
                       id="sign-in-email"
@@ -95,7 +92,7 @@ export function SignInPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="sign-in-password">{copy.password}</FieldLabel>
+                    <FieldLabel htmlFor="sign-in-password">{t('common.password')}</FieldLabel>
                     <Input
                       {...field}
                       id="sign-in-password"
@@ -109,15 +106,15 @@ export function SignInPage() {
                 )}
               />
               <Button type="submit" disabled={signIn.isPending}>
-                {signIn.isPending ? copy.submitting : copy.submit}
+                {signIn.isPending ? t('signIn.submitting') : t('auth.signIn')}
               </Button>
             </FieldGroup>
           </form>
         </CardContent>
         <CardFooter className="justify-center gap-1 text-sm text-muted-foreground">
-          {copy.noAccount}
+          {t('signIn.noAccount')}
           <Link to={otherPath} className="font-medium text-foreground underline underline-offset-4">
-            {copy.signUp}
+            {t('auth.signUp')}
           </Link>
         </CardFooter>
       </Card>

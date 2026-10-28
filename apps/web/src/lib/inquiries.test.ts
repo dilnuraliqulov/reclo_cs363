@@ -1,11 +1,6 @@
-import { inquiryStatusSchema } from '@reclo/shared'
 import { describe, expect, it } from 'vitest'
-import {
-  formatInquiryDate,
-  formatUzPhone,
-  inquiryStatusLabel,
-  inquiryStatusVariant,
-} from './inquiries'
+import { formatInquiryDate, formatUzPhone, inquiryStatusVariant } from './inquiries'
+import { inquiryStatusSchema } from '@reclo/shared'
 
 describe('formatUzPhone', () => {
   it('groups a canonical E.164 Uzbek number', () => {
@@ -21,29 +16,27 @@ describe('formatUzPhone', () => {
 
 describe('formatInquiryDate', () => {
   it('reads an ISO timestamp as a short date', () => {
-    expect(formatInquiryDate('2026-10-20T08:00:00.000Z')).toBe('20 Oct 2026')
+    expect(formatInquiryDate('2026-10-20T08:00:00.000Z', 'en')).toBe('20 Oct 2026')
+  })
+
+  // The same instant in each locale. Uzbek and Russian readers are both in Uzbekistan, so the day
+  // leads in all three; only the words and the separators change.
+  it('writes the month in Uzbek', () => {
+    expect(formatInquiryDate('2026-10-20T08:00:00.000Z', 'uz')).toBe('20-okt, 2026')
+  })
+
+  it('writes the month in Russian', () => {
+    expect(formatInquiryDate('2026-10-20T08:00:00.000Z', 'ru')).toBe('20 окт. 2026 г.')
   })
 
   it('returns an unparseable value untouched', () => {
-    expect(formatInquiryDate('not a date')).toBe('not a date')
+    expect(formatInquiryDate('not a date', 'en')).toBe('not a date')
   })
 })
 
-describe('inquiry status presentation', () => {
-  // The client never sees the enum: NEW reads as "Sent" from where they are standing, not as a
-  // vendor's inbox state. Pinned here so a rename cannot slip through unnoticed.
-  it.each([
-    ['NEW', 'Sent'],
-    ['READ', 'Seen'],
-    ['RESPONDED', 'Replied'],
-    ['CLOSED', 'Closed'],
-  ] as const)('labels %s as %s', (status, label) => {
-    expect(inquiryStatusLabel(status)).toBe(label)
-  })
-
-  it('covers every status in the enum, so a new one cannot render blank', () => {
+describe('inquiryStatusVariant', () => {
+  it('covers every status in the enum, so a new one cannot render unstyled', () => {
     for (const status of inquiryStatusSchema.options) {
-      expect(inquiryStatusLabel(status)).toBeTruthy()
       expect(inquiryStatusVariant(status)).toBeTruthy()
     }
   })
