@@ -32,3 +32,6 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Vendor listing photos (local disk, see docs/listing-design.md)
+apps/api/uploads
