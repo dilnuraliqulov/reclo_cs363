@@ -52,9 +52,10 @@ setup steps are in `README.md`.
 
 Project key: `KAN`.
 
-Current task: **KAN-16 "Users authenticate by email and password"**. Do its subtasks in this order:
+Current task: **KAN-19 "Client-facing UI supports Uzbek and Russian"**. Do its subtasks in this
+order:
 
-1. KAN-66 Design
-2. KAN-67 Backend
-3. KAN-68 Frontend
-4. KAN-69 Testing
+1. KAN-76 Design
+2. KAN-77 Backend
+3. KAN-78 Frontend
+4. KAN-79 Testing
