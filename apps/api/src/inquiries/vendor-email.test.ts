@@ -80,7 +80,7 @@ function setup({
     mailer,
     webPublicUrl: WEB_PUBLIC_URL,
   })
-  return { app, store }
+  return { app, store, setRole: memory.setRole }
 }
 
 async function signIn(app: ReturnType<typeof setup>['app']): Promise<string> {
@@ -198,5 +198,167 @@ describe('POST /api/inquiries: vendor email', () => {
     const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
 
     expect(response.status).toBe(201)
+  })
+})
+
+describe('POST /api/inquiries: when no vendor email goes out (KAN-72)', () => {
+  it('sends nothing for an invalid body', async () => {
+    const { mailer } = createRecordingMailer()
+    const { app } = setup({ mailer })
+    const cookie = await signIn(app)
+
+    const response = await request(app)
+      .post('/api/inquiries')
+      .set('Cookie', cookie)
+      .send({ ...validBody, contactPhone: '12' })
+    await flushPendingSends()
+
+    expect(response.status).toBe(400)
+    expect(mailer.send).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing without a session', async () => {
+    const { mailer } = createRecordingMailer()
+    const { app } = setup({ mailer })
+
+    const response = await request(app).post('/api/inquiries').send(validBody)
+    await flushPendingSends()
+
+    expect(response.status).toBe(401)
+    expect(mailer.send).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing when a vendor tries to send an inquiry', async () => {
+    const { mailer } = createRecordingMailer()
+    const { app, setRole } = setup({ mailer })
+    const cookie = await signIn(app)
+    setRole(credentials.email, 'VENDOR')
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+    await flushPendingSends()
+
+    expect(response.status).toBe(403)
+    expect(mailer.send).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing when a recent open inquiry already exists', async () => {
+    const { mailer } = createRecordingMailer()
+    const { app, store } = setup({
+      mailer,
+      store: {
+        findOpenInquiry: vi.fn().mockResolvedValue({ id: 'open-1', createdAt: new Date() }),
+      },
+    })
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+    await flushPendingSends()
+
+    expect(response.status).toBe(409)
+    expect(store.createInquiry).not.toHaveBeenCalled()
+    expect(mailer.send).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing when the store fails unexpectedly', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { mailer } = createRecordingMailer()
+    const { app } = setup({
+      mailer,
+      store: { createInquiry: vi.fn().mockRejectedValue(new Error('connection lost')) },
+    })
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+    await flushPendingSends()
+
+    expect(response.status).toBe(500)
+    expect(mailer.send).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/inquiries: vendor email edge cases (KAN-72)', () => {
+  it('sends exactly one email for the replacement when a stale inquiry is closed', async () => {
+    const { mailer, sent } = createRecordingMailer()
+    const longAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const { app, store } = setup({
+      mailer,
+      store: { findOpenInquiry: vi.fn().mockResolvedValue({ id: 'stale-1', createdAt: longAgo }) },
+    })
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+
+    expect(response.status).toBe(201)
+    expect(store.closeStaleInquiry).toHaveBeenCalledWith('stale-1')
+    await vi.waitFor(() => expect(sent).toHaveLength(1))
+    await flushPendingSends()
+    expect(sent).toHaveLength(1)
+  })
+
+  it('cannot be redirected by addresses or ids in the request body', async () => {
+    const { mailer, sent } = createRecordingMailer()
+    const { app } = setup({ mailer })
+    const cookie = await signIn(app)
+
+    await request(app)
+      .post('/api/inquiries')
+      .set('Cookie', cookie)
+      .send({
+        ...validBody,
+        to: 'attacker@example.com',
+        vendorEmail: 'attacker@example.com',
+        vendorId: 'someone-else',
+        replyTo: 'attacker@example.com',
+      })
+
+    await vi.waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0]!.to).toBe('vendor@example.com')
+    expect(sent[0]!.replyTo).toBe('aziza@example.com')
+  })
+
+  it('answers with the same body whether or not the email succeeds', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const ok = setup()
+    const failing = setup({
+      mailer: createRecordingMailer(async () => {
+        throw new Error('SMTP down')
+      }).mailer,
+    })
+
+    const okResponse = await request(ok.app)
+      .post('/api/inquiries')
+      .set('Cookie', await signIn(ok.app))
+      .send(validBody)
+    const failingResponse = await request(failing.app)
+      .post('/api/inquiries')
+      .set('Cookie', await signIn(failing.app))
+      .send(validBody)
+
+    expect(failingResponse.status).toBe(okResponse.status)
+    expect(failingResponse.body).toEqual(okResponse.body)
+  })
+
+  it('never tells the client who the vendor is', async () => {
+    const { app } = setup()
+    const cookie = await signIn(app)
+
+    const response = await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+
+    expect(JSON.stringify(response.body)).not.toContain('vendor@example.com')
+    expect(JSON.stringify(response.body)).not.toContain('Outdoor Media')
+  })
+
+  it('emails the vendor again for a second inquiry on another placement', async () => {
+    const { mailer, sent } = createRecordingMailer()
+    const { app } = setup({ mailer })
+    const cookie = await signIn(app)
+
+    await request(app).post('/api/inquiries').set('Cookie', cookie).send(validBody)
+    await request(app)
+      .post('/api/inquiries')
+      .set('Cookie', cookie)
+      .send({ ...validBody, placementId: '0c8d7e2a-1b3f-4a5c-9d6e-7f8a9b0c1d2e' })
+
+    await vi.waitFor(() => expect(sent).toHaveLength(2))
   })
 })
