@@ -107,6 +107,9 @@ export const en = {
   'error.PHOTO_TOO_LARGE': 'The photo is larger than 5 MB',
   'error.PHOTO_TYPE_INVALID': 'Photos must be JPEG, PNG or WebP',
   'error.PHOTO_NOT_FOUND': 'Photo not found',
+  'error.PLACEMENT_NOT_PENDING': 'This listing is no longer waiting for review',
+  'error.PLACEMENT_CHANGED': 'The vendor changed this listing. Review it again.',
+  'error.PLACEMENT_NO_PHOTOS': "A listing without photos can't be approved",
 
   'validation.email.invalid': 'Enter a valid email',
   'validation.email.taken': 'Email is already registered',
@@ -132,4 +135,14 @@ export const en = {
   'validation.update.empty': 'Nothing to update',
   'validation.led.typeOnly': 'LED details apply to LED screens only',
   'validation.led.range': 'Enter a whole number greater than 0',
+  'validation.reason.tooShort': 'Reason must be at least {min} characters',
+  'validation.reason.tooLong': 'Reason must be at most {max} characters',
+
+  'placement.status.ACTIVE': 'Live',
+  'placement.status.PENDING_REVIEW': 'Pending review',
+  'placement.status.INACTIVE': 'Paused',
+  'placement.status.REJECTED': 'Rejected',
+  'placement.status.ARCHIVED': 'Archived',
+  'vendor.rejection.title': 'Rejected',
+  'vendor.rejection.hint': 'Fix the issues below and save to send it for review again.',
 } as const

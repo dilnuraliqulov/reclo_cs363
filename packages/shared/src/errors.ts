@@ -26,6 +26,9 @@ export const errorCodeSchema = z.enum([
   'PHOTO_TOO_LARGE',
   'PHOTO_TYPE_INVALID',
   'PHOTO_NOT_FOUND',
+  'PLACEMENT_NOT_PENDING',
+  'PLACEMENT_CHANGED',
+  'PLACEMENT_NO_PHOTOS',
   'INTERNAL',
 ])
 export type ErrorCode = z.infer<typeof errorCodeSchema>
@@ -61,6 +64,8 @@ export const VALIDATION_CODES = {
   nothingToUpdate: 'validation.update.empty',
   ledTypeOnly: 'validation.led.typeOnly',
   ledRange: 'validation.led.range',
+  reasonTooShort: 'validation.reason.tooShort',
+  reasonTooLong: 'validation.reason.tooLong',
 } as const
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)

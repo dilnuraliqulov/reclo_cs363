@@ -101,6 +101,9 @@ export const uz = {
   'error.PHOTO_TOO_LARGE': 'Rasm 5 MB dan katta',
   'error.PHOTO_TYPE_INVALID': "Rasm JPEG, PNG yoki WebP bo'lishi kerak",
   'error.PHOTO_NOT_FOUND': 'Rasm topilmadi',
+  'error.PLACEMENT_NOT_PENDING': "Bu e'lon endi ko'rib chiqishni kutmayapti",
+  'error.PLACEMENT_CHANGED': "Sotuvchi e'lonni o'zgartirdi. Uni qayta ko'rib chiqing.",
+  'error.PLACEMENT_NO_PHOTOS': "Rasmsiz e'lonni tasdiqlab bo'lmaydi",
 
   'validation.email.invalid': "To'g'ri email kiriting",
   'validation.email.taken': "Bu email allaqachon ro'yxatdan o'tgan",
@@ -126,4 +129,15 @@ export const uz = {
   'validation.update.empty': "Yangilash uchun hech narsa yo'q",
   'validation.led.typeOnly': "LED ma'lumotlari faqat LED ekranlar uchun",
   'validation.led.range': '0 dan katta butun son kiriting',
+  'validation.reason.tooShort': "Sabab kamida {min} ta belgidan iborat bo'lishi kerak",
+  'validation.reason.tooLong': "Sabab ko'pi bilan {max} ta belgidan iborat bo'lishi kerak",
+
+  'placement.status.ACTIVE': 'Faol',
+  'placement.status.PENDING_REVIEW': "Ko'rib chiqilmoqda",
+  'placement.status.INACTIVE': "To'xtatilgan",
+  'placement.status.REJECTED': 'Rad etilgan',
+  'placement.status.ARCHIVED': 'Arxivlangan',
+  'vendor.rejection.title': 'Rad etildi',
+  'vendor.rejection.hint':
+    "Quyidagi kamchiliklarni tuzating va qayta ko'rib chiqishga yuborish uchun saqlang.",
 } as const

@@ -105,6 +105,9 @@ export const ru = {
   'error.PHOTO_TOO_LARGE': 'Фото больше 5 МБ',
   'error.PHOTO_TYPE_INVALID': 'Фото должно быть в формате JPEG, PNG или WebP',
   'error.PHOTO_NOT_FOUND': 'Фото не найдено',
+  'error.PLACEMENT_NOT_PENDING': 'Это объявление больше не ожидает проверки',
+  'error.PLACEMENT_CHANGED': 'Продавец изменил это объявление. Проверьте его заново.',
+  'error.PLACEMENT_NO_PHOTOS': 'Объявление без фото нельзя одобрить',
 
   'validation.email.invalid': 'Введите корректную почту',
   'validation.email.taken': 'Эта почта уже зарегистрирована',
@@ -130,4 +133,15 @@ export const ru = {
   'validation.update.empty': 'Нечего обновлять',
   'validation.led.typeOnly': 'Параметры LED доступны только для LED-экранов',
   'validation.led.range': 'Введите целое число больше 0',
+  'validation.reason.tooShort': 'Причина должна содержать не менее {min} символов',
+  'validation.reason.tooLong': 'Причина должна содержать не более {max} символов',
+
+  'placement.status.ACTIVE': 'Опубликовано',
+  'placement.status.PENDING_REVIEW': 'На проверке',
+  'placement.status.INACTIVE': 'Приостановлено',
+  'placement.status.REJECTED': 'Отклонено',
+  'placement.status.ARCHIVED': 'В архиве',
+  'vendor.rejection.title': 'Отклонено',
+  'vendor.rejection.hint':
+    'Исправьте замечания ниже и сохраните, чтобы отправить на повторную проверку.',
 } as const

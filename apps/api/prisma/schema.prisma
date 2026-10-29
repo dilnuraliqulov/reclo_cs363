@@ -30,6 +30,7 @@ model User {
   sessions        Session[]
   clientInquiries Inquiry[]   @relation("ClientInquiries")
   vendorInquiries Inquiry[]   @relation("VendorInquiries")
+  moderationEvents ModerationEvent[] @relation("ModerationEvents")
 }
 
 model Session {
@@ -52,6 +53,7 @@ enum PlacementStatus {
   ACTIVE
   PENDING_REVIEW
   INACTIVE
+  REJECTED // an admin refused it; the vendor must edit it to resubmit
   ARCHIVED
 }
 
@@ -76,13 +78,34 @@ model Placement {
   vendorId      String
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   inquiries     Inquiry[]
+  moderationEvents ModerationEvent[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   @@index([vendorId, status]) // vendor "My listings" list and status filter
-  @@index([status])
+  @@index([status, updatedAt]) // moderation queue, oldest first
   @@index([city])
   @@index([latitude, longitude])
+}
+
+enum ModerationAction {
+  APPROVED
+  REJECTED
+}
+
+// Append-only audit trail of admin decisions; the app never updates or deletes a row.
+model ModerationEvent {
+  id          String           @id @default(uuid())
+  placementId String
+  placement   Placement        @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  adminId     String?
+  admin       User?            @relation("ModerationEvents", fields: [adminId], references: [id], onDelete: SetNull)
+  action      ModerationAction
+  reason      String? // required when action = REJECTED, null for APPROVED
+  createdAt   DateTime         @default(now())
+
+  // History of one listing, newest first (detail pane, vendor rejection reason).
+  @@index([placementId, createdAt])
 }
 
 enum InquiryStatus {
