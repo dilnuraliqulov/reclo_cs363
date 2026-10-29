@@ -54,14 +54,25 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request(path: string, init: { method: string; body?: unknown }): Promise<Response> {
+/** `body` is sent as JSON, unless it is a FormData: then the browser sets the multipart boundary. */
+export async function request(
+  path: string,
+  init: { method: string; body?: unknown },
+): Promise<Response> {
+  const isForm = init.body instanceof FormData
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       method: init.method,
       credentials: 'include',
-      headers: init.body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      headers:
+        init.body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
+      body:
+        init.body === undefined
+          ? undefined
+          : isForm
+            ? (init.body as FormData)
+            : JSON.stringify(init.body),
     })
   } catch {
     throw new ApiRequestError(0, 'Cannot reach the server. Check your connection and try again.')

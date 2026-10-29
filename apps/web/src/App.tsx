@@ -10,6 +10,8 @@ import { ModerationPage } from '@/pages/ModerationPage'
 import { PlacementsDiscoveryPage } from '@/pages/PlacementsDiscoveryPage'
 import { SignInPage } from '@/pages/SignInPage'
 import { SignUpPage } from '@/pages/SignUpPage'
+import { ListingEditorPage } from '@/pages/ListingEditorPage'
+import { VendorListingsPage } from '@/pages/VendorListingsPage'
 
 export default function App() {
   return (
@@ -20,6 +22,11 @@ export default function App() {
           <Route path="/placements" element={<PlacementsDiscoveryPage />} />
           <Route element={<RequireAuth />}>
             <Route path="/inquiries" element={<InquiryHistoryPage />} />
+            <Route element={<RequireRole role="VENDOR" />}>
+              <Route path="/vendor/placements" element={<VendorListingsPage />} />
+              <Route path="/vendor/placements/new" element={<ListingEditorPage />} />
+              <Route path="/vendor/placements/:id/edit" element={<ListingEditorPage />} />
+            </Route>
           </Route>
           <Route element={<RequireRole role="ADMIN" />}>
             <Route path="/admin/moderation/:id?" element={<ModerationPage />} />

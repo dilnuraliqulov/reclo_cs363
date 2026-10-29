@@ -33,3 +33,11 @@ Object.assign(window.Element.prototype, {
   releasePointerCapture: () => {},
   scrollIntoView: () => {},
 })
+
+// jsdom has no ResizeObserver, and Radix's Switch measures its hidden checkbox with one.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver ??= ResizeObserverStub
