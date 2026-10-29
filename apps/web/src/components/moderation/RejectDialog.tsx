@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { REJECTION_REASON_LIMITS, rejectPlacementRequestSchema } from '@reclo/shared'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -30,9 +30,17 @@ interface RejectDialogProps {
   /** True while the request runs: both buttons are disabled and the dialog cannot be dismissed. */
   pending: boolean
   onSubmit: (reason: string) => void
+  /** Where focus goes when the dialog closes. It has no trigger of its own to return to. */
+  returnFocusRef: RefObject<HTMLElement | null>
 }
 
-export function RejectDialog({ open, onOpenChange, pending, onSubmit }: RejectDialogProps) {
+export function RejectDialog({
+  open,
+  onOpenChange,
+  pending,
+  onSubmit,
+  returnFocusRef,
+}: RejectDialogProps) {
   const t = useT()
   const { fieldError } = useMessages()
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -66,6 +74,10 @@ export function RejectDialog({ open, onOpenChange, pending, onSubmit }: RejectDi
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           cancelRef.current?.focus()
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          returnFocusRef.current?.focus()
         }}
       >
         <form onSubmit={form.handleSubmit((values) => onSubmit(values.reason))} noValidate>

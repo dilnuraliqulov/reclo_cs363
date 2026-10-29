@@ -1,7 +1,7 @@
 import type { AdminPlacementDetail } from '@reclo/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -32,6 +32,7 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
   const redirectOnAuthError = useAuthRedirect()
   const queryClient = useQueryClient()
   const [rejectOpen, setRejectOpen] = useState(false)
+  const rejectButtonRef = useRef<HTMLButtonElement>(null)
 
   const detail = useQuery({
     queryKey: adminPlacementKey(id),
@@ -191,6 +192,7 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
             </p>
           )}
           <Button
+            ref={rejectButtonRef}
             variant="outline"
             className="min-h-10"
             disabled={decide.isPending}
@@ -214,6 +216,7 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
         open={rejectOpen}
         onOpenChange={setRejectOpen}
         pending={decide.isPending}
+        returnFocusRef={rejectButtonRef}
         onSubmit={(reason) => decide.mutate({ kind: 'reject', reason })}
       />
     </div>
