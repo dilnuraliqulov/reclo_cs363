@@ -91,6 +91,7 @@ export const uz = {
   'error.PAYLOAD_TOO_LARGE': "So'rov tanasi juda katta",
   'error.UNSUPPORTED_MEDIA_TYPE': "Qo'llab-quvvatlanmaydigan kontent turi, JSON yuboring",
   'error.NOT_FOUND': 'Topilmadi',
+  'error.NETWORK': "Serverga ulanib bo'lmadi. Internet aloqasini tekshirib, qayta urinib ko'ring.",
   'error.INVALID_PLACEMENT_ID': 'Joy identifikatori xato',
   'error.PLACEMENT_NOT_FOUND': 'Joy topilmadi',
   'error.DUPLICATE_INQUIRY': "Bu joy uchun ochiq so'rovingiz allaqachon bor",

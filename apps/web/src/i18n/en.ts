@@ -97,6 +97,7 @@ export const en = {
   'error.PAYLOAD_TOO_LARGE': 'Request body is too large',
   'error.UNSUPPORTED_MEDIA_TYPE': 'Unsupported content type, send JSON',
   'error.NOT_FOUND': 'Not found',
+  'error.NETWORK': 'Cannot reach the server. Check your connection and try again.',
   'error.INVALID_PLACEMENT_ID': 'Invalid placement id',
   'error.PLACEMENT_NOT_FOUND': 'Placement not found',
   'error.DUPLICATE_INQUIRY': 'You already have an open inquiry for this placement',

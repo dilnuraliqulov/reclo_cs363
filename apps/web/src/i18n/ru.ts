@@ -95,6 +95,7 @@ export const ru = {
   'error.PAYLOAD_TOO_LARGE': 'Тело запроса слишком большое',
   'error.UNSUPPORTED_MEDIA_TYPE': 'Неподдерживаемый тип содержимого, отправьте JSON',
   'error.NOT_FOUND': 'Не найдено',
+  'error.NETWORK': 'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',
   'error.INVALID_PLACEMENT_ID': 'Неверный идентификатор площадки',
   'error.PLACEMENT_NOT_FOUND': 'Площадка не найдена',
   'error.DUPLICATE_INQUIRY': 'У вас уже есть открытая заявка на эту площадку',
