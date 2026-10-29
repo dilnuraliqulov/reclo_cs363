@@ -1,10 +1,16 @@
-import type { Inquiry, InquiryHistoryItem, InquiryStatus } from '@reclo/shared'
+import type { Inquiry, InquiryHistoryItem, InquiryStatus, PlacementType } from '@reclo/shared'
 import type { InquiryCursor } from './cursor'
 
-/** The placement fields the inquiry routes need to accept a submission. */
+/** The placement fields the inquiry routes need to accept a submission and email the vendor. */
 export interface InquiryPlacement {
   id: string
   vendorId: string
+  title: string
+  address: string
+  city: string
+  type: PlacementType
+  /** Who the new-inquiry email goes to (KAN-17). Never sent to the client. */
+  vendor: { email: string; companyName: string | null }
 }
 
 export interface OpenInquiry {

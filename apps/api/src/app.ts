@@ -8,6 +8,7 @@ import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import type { Mailer } from './email/mailer'
 import { createCartRouter } from './cart/routes'
 import type { CartStore } from './cart/store'
 import {
@@ -44,6 +45,10 @@ export interface AppDependencies {
   uploadsDir?: string
   /** Inquiries persistence. */
   inquiryStore?: InquiryStore
+  /** Sends the vendor an email on each new inquiry. Omit to send none (most tests). */
+  mailer?: Mailer
+  /** Origin of the web app, for links in emails. Defaults to http://localhost:5173. */
+  webPublicUrl?: string
   /** Admin inquiry history. The `/api/admin/inquiries` routes are mounted only when present. */
   adminInquiryStore?: AdminInquiryStore
   /** A signed-in client's media plan. The `/api/cart` routes are mounted only when present. */
@@ -71,6 +76,8 @@ export function createApp({
   authStore,
   placementStore,
   inquiryStore,
+  mailer,
+  webPublicUrl = 'http://localhost:5173',
   adminInquiryStore,
   cartStore,
   vendorPlacementStore,
@@ -177,6 +184,8 @@ export function createApp({
         requireAuth,
         now,
         rateLimitMax: inquiryRateLimitMax,
+        mailer,
+        webPublicUrl,
       }),
     )
   }

@@ -4,6 +4,7 @@ import { createApp } from './app'
 import { createPrismaAuthStore } from './auth/prisma-store'
 import { PrismaCartStore } from './cart/prisma-store'
 import { checkDatabase, prisma } from './db'
+import { createMailer } from './email/mailer'
 import { env } from './env'
 import { createPrismaInquiryStore } from './inquiries/prisma-store'
 import { PrismaAdminPlacementStore } from './placements/admin-prisma-store'
@@ -23,6 +24,8 @@ const app = createApp({
   photoStorage: new DiskPhotoStorage(uploadsDir),
   uploadsDir,
   inquiryStore: createPrismaInquiryStore(prisma),
+  mailer: createMailer(env),
+  webPublicUrl: env.WEB_PUBLIC_URL,
   adminInquiryStore: createPrismaAdminInquiryStore(prisma),
   cartStore: new PrismaCartStore(prisma, env.API_PUBLIC_URL),
   corsOrigin: env.CORS_ORIGIN,

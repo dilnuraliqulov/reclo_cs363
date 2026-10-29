@@ -21,5 +21,16 @@ services:
       timeout: 5s
       retries: 10
 
+  # Catches every email the API sends in development (KAN-17); nothing leaves the machine.
+  # SMTP on host port 1026, web inbox at http://localhost:8026. One above Mailpit's defaults, so it
+  # does not clash with another project's Mailpit.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: reclo-cs363-mailpit
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1026:1025'
+      - '127.0.0.1:8026:8025'
+
 volumes:
   pgdata:

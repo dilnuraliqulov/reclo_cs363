@@ -291,3 +291,54 @@ describe('createPrismaInquiryStore.listClientInquiries', () => {
     })
   })
 })
+
+describe('createPrismaInquiryStore.findActivePlacement', () => {
+  const vendorPlacement = {
+    id: placement.id,
+    vendorId: 'vendor-123',
+    title: placement.title,
+    address: 'Amir Temur shoh ko‘chasi 1',
+    city: placement.city,
+    type: placement.type,
+    vendor: { email: 'vendor@example.com', companyName: 'Outdoor Media' },
+  }
+
+  function createStoreWith(findFirst: ReturnType<typeof vi.fn>) {
+    const prisma = { inquiry: { findMany }, placement: { findFirst } } as unknown as PrismaClient
+    return createPrismaInquiryStore(prisma)
+  }
+
+  it('still only finds an ACTIVE placement', async () => {
+    const findFirst = vi.fn().mockResolvedValue(null)
+
+    await createStoreWith(findFirst).findActivePlacement(placement.id)
+
+    expect(findFirst.mock.lastCall?.[0].where).toEqual({ id: placement.id, status: 'ACTIVE' })
+  })
+
+  it('loads what the vendor email needs in the same query', async () => {
+    const findFirst = vi.fn().mockResolvedValue(vendorPlacement)
+
+    const result = await createStoreWith(findFirst).findActivePlacement(placement.id)
+
+    expect(findFirst).toHaveBeenCalledTimes(1)
+    expect(findFirst.mock.lastCall?.[0].select).toEqual({
+      id: true,
+      vendorId: true,
+      title: true,
+      address: true,
+      city: true,
+      type: true,
+      vendor: { select: { email: true, companyName: true } },
+    })
+    expect(result).toEqual(vendorPlacement)
+  })
+
+  it('never selects the vendor password hash', async () => {
+    const findFirst = vi.fn().mockResolvedValue(vendorPlacement)
+
+    await createStoreWith(findFirst).findActivePlacement(placement.id)
+
+    expect(JSON.stringify(findFirst.mock.lastCall?.[0])).not.toContain('passwordHash')
+  })
+})
