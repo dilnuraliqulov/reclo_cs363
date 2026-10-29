@@ -1,5 +1,10 @@
 import { useRef, useState } from 'react'
-import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
+import {
+  MINOR_UNITS_PER_UZS,
+  type PlacementDetail,
+  type PlacementMarker,
+  type PublicPricing,
+} from '@reclo/shared'
 import { Calendar, Compass, DollarSign, ImageOff, MapPin, Sparkles } from 'lucide-react'
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { InquiryFormDialog } from '@/components/inquiries/InquiryFormDialog'
@@ -13,11 +18,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { useT } from '@/i18n/useLocale'
 import { formatPrice, formatPlacementType, getPlacementTypeColor } from '@/lib/placements'
 
 interface PlacementDetailModalProps {
   marker: PlacementMarker | null
-  detail: PlacementDetail | null
+  detail: (PlacementDetail & { pricing?: PublicPricing | null }) | null
   isDetailLoading?: boolean
   detailError?: Error | null
   open: boolean
@@ -157,6 +171,8 @@ export function PlacementDetailModal({
           )}
         </div>
 
+        {detail?.pricing && <PricingGrid pricing={detail.pricing} />}
+
         <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
@@ -182,5 +198,50 @@ export function PlacementDetailModal({
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The vendor's price grid as the client pays it: gross, with the VAT rate noted. */
+function PricingGrid({ pricing }: { pricing: PublicPricing }) {
+  const t = useT()
+  const uzs = (tiyin: number) => formatPrice(tiyin / MINOR_UNITS_PER_UZS)
+  return (
+    <section aria-labelledby="placement-pricing-title" className="space-y-2 text-xs">
+      <h3 id="placement-pricing-title" className="text-sm font-semibold">
+        {t('pricing.public.title')}
+      </h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('pricing.termHeader')}</TableHead>
+            {pricing.durations.map((seconds) => (
+              <TableHead key={seconds} className="text-right">
+                {t('pricing.public.seconds', { n: seconds })}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {pricing.terms.map((months, row) => (
+            <TableRow key={months}>
+              <TableCell>{t('pricing.public.months', { n: months })}</TableCell>
+              {pricing.durations.map((seconds, col) => {
+                const cell = pricing.prices[row]?.[col]
+                return (
+                  <TableCell key={seconds} className="text-right tabular-nums">
+                    {cell ? uzs(cell.gross) : '—'}
+                  </TableCell>
+                )
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <p className="text-muted-foreground">
+        {pricing.vat.vatEnabled
+          ? t('pricing.public.vatIncluded', { rate: pricing.vat.vatRate / 100 })
+          : t('pricing.public.noVat')}
+      </p>
+    </section>
   )
 }

@@ -1,7 +1,9 @@
 import {
+  placementPricingSchema,
   vendorPlacementListResponseSchema,
   vendorPlacementResponseSchema,
   type CreatePlacementRequest,
+  type PlacementPricing,
   type PlacementStatus,
   type UpdatePlacementRequest,
   type VendorPlacement,
@@ -61,4 +63,18 @@ export async function deletePlacementPhoto(id: string, photoUrl: string) {
   return placementFrom(
     await request(`${BASE}/${id}/photos/${encodeURIComponent(file)}`, { method: 'DELETE' }),
   )
+}
+
+/** The listing's price matrix, or null before the vendor has set one (KAN-11). */
+export async function fetchVendorPlacementPricing(id: string): Promise<PlacementPricing | null> {
+  const response = await request(`${BASE}/${id}/pricing`, { method: 'GET' })
+  return placementPricingSchema.nullable().parse(await response.json())
+}
+
+export async function saveVendorPlacementPricing(
+  id: string,
+  pricing: PlacementPricing,
+): Promise<PlacementPricing> {
+  const response = await request(`${BASE}/${id}/pricing`, { method: 'PUT', body: pricing })
+  return placementPricingSchema.parse(await response.json())
 }
