@@ -1,4 +1,5 @@
 import {
+  COMPANY_NAME_MAX_LENGTH,
   LISTING_LIMITS,
   MESSAGE_MAX_LENGTH,
   MESSAGE_MIN_LENGTH,
@@ -23,6 +24,7 @@ const VALIDATION_VALUES: Partial<Record<MessageKey, Values>> = {
   'validation.password.tooLong': { max: PASSWORD_MAX_LENGTH },
   'validation.message.tooShort': { min: MESSAGE_MIN_LENGTH },
   'validation.message.tooLong': { max: MESSAGE_MAX_LENGTH },
+  'validation.companyName.tooLong': { max: COMPANY_NAME_MAX_LENGTH },
   'validation.title.length': { min: LISTING_LIMITS.titleMin, max: LISTING_LIMITS.titleMax },
   'validation.description.tooLong': { max: LISTING_LIMITS.descriptionMax },
   'validation.address.length': { min: LISTING_LIMITS.addressMin, max: LISTING_LIMITS.addressMax },

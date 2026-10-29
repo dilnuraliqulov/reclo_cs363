@@ -18,6 +18,22 @@ export const uz = {
   'auth.signOutFailed': "Chiqish amalga oshmadi. Qaytadan urinib ko'ring.",
   'auth.signedInAs': 'Hisob:',
   'auth.myInquiries': "Mening so'rovlarim",
+  'auth.adminVendors': 'Vendorlar',
+  'adminVendors.title': 'Vendorlar',
+  'adminVendors.subtitle': 'Bilbord va LED ekran egalari uchun akkaunt yarating.',
+  'adminVendors.formTitle': 'Yangi vendor akkaunti',
+  'adminVendors.formDescription':
+    "Vendor shu email va parol bilan kiradi. Ularni xavfsiz yo'l bilan yetkazing.",
+  'adminVendors.companyName': 'Kompaniya nomi',
+  'adminVendors.passwordHint': 'Kamida 8 ta belgi. Akkaunt yaratishdan oldin parolni nusxalang.',
+  'adminVendors.generate': 'Yaratish',
+  'adminVendors.submit': 'Vendor akkauntini yaratish',
+  'adminVendors.submitting': 'Yaratilmoqda…',
+  'adminVendors.created': '{email} uchun vendor akkaunti yaratildi',
+  'adminVendors.listTitle': 'Vendor akkauntlari ({count})',
+  'adminVendors.listLoadFailed': "Vendor akkauntlarini yuklab bo'lmadi.",
+  'adminVendors.empty': "Hozircha vendor akkauntlari yo'q.",
+  'adminVendors.createdColumn': 'Yaratilgan',
 
   'common.email': 'Email',
   'common.password': 'Parol',
@@ -343,4 +359,6 @@ export const uz = {
   'listing.photos.errorLimit':
     "Yuklanmadi, e'londa ko'pi bilan {max} ta rasm bo'lishi mumkin: {name}",
   'listing.photos.errorUpload': '{name}: {reason}',
+  'validation.companyName.required': 'Kompaniya nomini kiriting',
+  'validation.companyName.tooLong': 'Kompaniya nomi {max} belgidan oshmasligi kerak',
 } as const

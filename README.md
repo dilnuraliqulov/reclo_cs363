@@ -42,6 +42,9 @@ Then open:
 
 The defaults in the `.env.example` files work as they are for local development.
 
+Sign-up only creates client accounts, and vendor accounts are created by an admin (Vendors in the
+header). The first admin comes from `pnpm db:seed-admin`; see "Admin account" below.
+
 ## Ports
 
 | Service    | Port | Notes                                                           |
@@ -83,7 +86,7 @@ ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a long secret' pnpm db:seed-admin
 
 The password must be 8 to 128 characters. The command is safe to run again: if the email already has
 an account it is made an admin and its password is left alone. Sign in with these credentials, then
-open `/admin/moderation`.
+open `/admin/moderation` to review listings, or `/admin/vendors` to create vendor accounts.
 
 ## Project structure
 

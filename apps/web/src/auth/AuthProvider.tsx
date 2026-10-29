@@ -2,9 +2,7 @@ import type { PublicUser } from '@reclo/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, type ReactNode } from 'react'
 import { fetchMe, logout } from '@/lib/api'
-import { AuthContext, type AuthState } from './useAuth'
-
-const ME_KEY = ['auth', 'me'] as const
+import { AuthContext, ME_KEY, type AuthState } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()

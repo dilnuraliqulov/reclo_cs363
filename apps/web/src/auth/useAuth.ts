@@ -11,6 +11,9 @@ export interface AuthState {
   signOut: () => Promise<void>
 }
 
+/** The signed-in user query. Invalidate it to re-check the session, e.g. after a 401 or 403. */
+export const ME_KEY = ['auth', 'me'] as const
+
 export const AuthContext = createContext<AuthState | null>(null)
 
 export function useAuth(): AuthState {

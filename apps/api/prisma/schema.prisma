@@ -2,7 +2,7 @@
 // Docs: https://pris.ly/d/prisma-schema
 //
 // The connection URL is not set here: Prisma 7 reads it from prisma7.config.ts.
-// Models: User, Session (KAN-67), Placement (KAN-23) and Inquiry (KAN-35).
+// Models: User (vendor fields: KAN-55), Session (KAN-67), Placement (KAN-23) and Inquiry (KAN-35).
 
 generator client {
   provider = "prisma-client"
@@ -31,6 +31,14 @@ model User {
   clientInquiries Inquiry[]   @relation("ClientInquiries")
   vendorInquiries Inquiry[]   @relation("VendorInquiries")
   moderationEvents ModerationEvent[] @relation("ModerationEvents")
+
+  companyName     String?     // set for VENDOR accounts, null otherwise
+  createdById     String?     // the ADMIN who created this account; null for self-registered users
+  createdBy       User?       @relation("CreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers    User[]      @relation("CreatedUsers")
+
+  // Serves the admin vendor list (KAN-13), newest first.
+  @@index([role, createdAt])
 }
 
 model Session {

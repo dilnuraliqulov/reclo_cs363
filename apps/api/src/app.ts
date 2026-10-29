@@ -2,6 +2,7 @@ import type { HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { type Express } from 'express'
+import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
@@ -49,7 +50,7 @@ export interface AppDependencies {
   inquiryRateLimitMax?: number
   /** Max mutating vendor listing requests per IP per 15 minutes. Defaults to 120. */
   vendorRateLimitMax?: number
-  /** Max approve + reject requests per IP per 15 minutes. Defaults to 120. */
+  /** Max approve + reject + create-vendor requests per IP per 15 minutes. Defaults to 120. */
   adminRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
@@ -102,6 +103,11 @@ export function createApp({
       rateLimitMax: authRateLimitMax,
       secureCookies,
     }),
+  )
+
+  app.use(
+    '/api/admin/vendors',
+    createAdminRouter({ store: authStore, requireAuth, rateLimitMax: adminRateLimitMax }),
   )
 
   if (placementStore) {

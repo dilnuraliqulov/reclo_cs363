@@ -70,6 +70,8 @@ export const VALIDATION_CODES = {
   ledRange: 'validation.led.range',
   reasonTooShort: 'validation.reason.tooShort',
   reasonTooLong: 'validation.reason.tooLong',
+  companyNameRequired: 'validation.companyName.required',
+  companyNameTooLong: 'validation.companyName.tooLong',
 } as const
 
 /**

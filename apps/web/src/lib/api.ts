@@ -3,6 +3,7 @@ import {
   adminPlacementResponseSchema,
   apiErrorSchema,
   authResponseSchema,
+  createVendorResponseSchema,
   healthResponseSchema,
   inquiryHistoryResponseSchema,
   inquiryResponseSchema,
@@ -11,9 +12,11 @@ import {
   type AdminPlacementDetail,
   type AdminPlacementListQuery,
   type AdminPlacementListResponse,
+  vendorListResponseSchema,
   type ApiError,
   type ApprovePlacementRequest,
   type CreateInquiryRequest,
+  type CreateVendorRequest,
   type ErrorCode,
   type HealthResponse,
   type Inquiry,
@@ -26,6 +29,7 @@ import {
   type PublicUser,
   type RegisterRequest,
   type RejectPlacementRequest,
+  type VendorSummary,
 } from '@reclo/shared'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
@@ -233,4 +237,16 @@ export async function rejectPlacement(
     body: input,
   })
   return adminPlacementResponseSchema.parse(await response.json()).placement
+}
+
+/** Admin only: creates a vendor account. The admin stays signed in as themselves. */
+export async function createVendor(input: CreateVendorRequest): Promise<VendorSummary> {
+  const response = await request('/api/admin/vendors', { method: 'POST', body: input })
+  return createVendorResponseSchema.parse(await response.json()).vendor
+}
+
+/** Admin only: vendor accounts, newest first. */
+export async function fetchVendors(): Promise<VendorSummary[]> {
+  const response = await request('/api/admin/vendors', { method: 'GET' })
+  return vendorListResponseSchema.parse(await response.json()).vendors
 }
