@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -9,7 +10,7 @@ import {
 } from 'react'
 import { CART_STORAGE_KEY, type CartItem, type PlacementDetail } from '@reclo/shared'
 import { toast } from 'sonner'
-import { useAuth } from '@/auth/useAuth'
+import { AuthContext } from '@/auth/useAuth'
 import {
   ApiRequestError,
   addCartItem,
@@ -47,7 +48,10 @@ const UNKNOWN = Symbol('unknown')
 export function CartProvider({ children }: { children: ReactNode }) {
   const t = useT()
   const { apiErrorText } = useMessages()
-  const { user, isLoading } = useAuth()
+  // Outside an AuthProvider (isolated component tests) the cart behaves as for a visitor.
+  const auth = useContext(AuthContext)
+  const user = auth?.user ?? null
+  const isLoading = auth?.isLoading ?? false
   const store = useState(createCartStore)[0]
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot)
 
