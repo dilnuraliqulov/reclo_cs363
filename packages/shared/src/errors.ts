@@ -59,6 +59,8 @@ export const VALIDATION_CODES = {
   longitudeRange: 'validation.longitude.range',
   sizeRange: 'validation.size.range',
   nothingToUpdate: 'validation.update.empty',
+  ledTypeOnly: 'validation.led.typeOnly',
+  ledRange: 'validation.led.range',
 } as const
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)

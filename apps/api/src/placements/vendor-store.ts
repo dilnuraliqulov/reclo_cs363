@@ -14,6 +14,8 @@ export type MutationResult =
   | { kind: 'ok'; placement: VendorPlacement }
   | { kind: 'not_found' }
   | { kind: 'conflict'; status: PlacementStatus }
+  /** LED values sent for a listing that is not an LED screen (and the body did not change that). */
+  | { kind: 'led_not_allowed' }
 
 export type AddPhotoResult = MutationResult | { kind: 'photo_limit' }
 export type RemovePhotoResult = MutationResult | { kind: 'photo_missing' }

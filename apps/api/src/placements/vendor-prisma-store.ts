@@ -74,17 +74,30 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
     id: string,
     data: UpdatePlacementRequest,
   ): Promise<MutationResult> {
+    const sendsLed = data.ledDurationSeconds !== undefined || data.ledPlaysPerDay !== undefined
+    // The type after the update is the body's, else the stored one. Leaving LED_SCREEN clears the
+    // LED values in the same statement; LED values without a type in the body are checked against
+    // the stored type by the `where`, so the check cannot race a concurrent type change.
+    const content: Omit<UpdatePlacementRequest, 'ledDurationSeconds' | 'ledPlaysPerDay'> & {
+      ledDurationSeconds?: number | null
+      ledPlaysPerDay?: number | null
+    } =
+      data.type !== undefined && data.type !== 'LED_SCREEN'
+        ? { ...data, ledDurationSeconds: null, ledPlaysPerDay: null }
+        : data
+    const typeGuard = sendsLed && data.type === undefined ? { type: 'LED_SCREEN' as const } : {}
+
     // A live or paused listing goes back to review with its new content, in the same statement.
     const moved = await this.prisma.placement.updateMany({
-      where: { id, vendorId, status: { in: REVIEWED } },
-      data: { ...data, status: 'PENDING_REVIEW' },
+      where: { id, vendorId, status: { in: REVIEWED }, ...typeGuard },
+      data: { ...content, status: 'PENDING_REVIEW' },
     })
     if (moved.count === 0) {
       const stayed = await this.prisma.placement.updateMany({
-        where: { id, vendorId, status: 'PENDING_REVIEW' },
-        data,
+        where: { id, vendorId, status: 'PENDING_REVIEW', ...typeGuard },
+        data: content,
       })
-      if (stayed.count === 0) return this.notUpdated(vendorId, id)
+      if (stayed.count === 0) return this.notUpdated(vendorId, id, sendsLed && !data.type)
     }
     return this.reload(vendorId, id)
   }
@@ -168,12 +181,20 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
     return { kind: 'conflict', status }
   }
 
-  private async notUpdated(vendorId: string, id: string): Promise<MutationResult> {
+  private async notUpdated(
+    vendorId: string,
+    id: string,
+    checkLed = false,
+  ): Promise<MutationResult> {
     const row = await this.prisma.placement.findFirst({
       where: { id, vendorId },
-      select: { status: true },
+      select: { status: true, type: true },
     })
-    return row ? { kind: 'conflict', status: row.status } : { kind: 'not_found' }
+    if (!row) return { kind: 'not_found' }
+    if (checkLed && row.status !== 'ARCHIVED' && row.type !== 'LED_SCREEN') {
+      return { kind: 'led_not_allowed' }
+    }
+    return { kind: 'conflict', status: row.status }
   }
 
   private async reload(vendorId: string, id: string): Promise<MutationResult> {
@@ -200,6 +221,8 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
       height: row.height,
       lighting: row.lighting,
       photos,
+      ledDurationSeconds: row.ledDurationSeconds,
+      ledPlaysPerDay: row.ledPlaysPerDay,
       vendorId: row.vendorId,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),

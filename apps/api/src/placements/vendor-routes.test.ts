@@ -30,6 +30,8 @@ const listing: VendorPlacement = {
   height: null,
   lighting: false,
   photos: [],
+  ledDurationSeconds: null,
+  ledPlaysPerDay: null,
   vendorId: 'ignored',
   createdAt: '2026-10-10T10:00:00.000Z',
   updatedAt: '2026-10-12T15:00:00.000Z',
@@ -375,6 +377,81 @@ describe('list and get', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.placement.id).toBe(ID)
+  })
+})
+
+describe('LED fields', () => {
+  const led = { ledDurationSeconds: 10, ledPlaysPerDay: 360 }
+
+  it('creates an LED_SCREEN with both values and returns them', async () => {
+    const { app, store, owner } = setup()
+    const { cookie, id } = await owner()
+    store.create.mockResolvedValueOnce({ ...listing, type: 'LED_SCREEN', ...led })
+
+    const res = await request(app)
+      .post('/api/vendor/placements')
+      .set('Cookie', cookie)
+      .send({ ...validBody, type: 'LED_SCREEN', ...led })
+
+    expect(res.status).toBe(201)
+    expect(res.body.placement).toMatchObject(led)
+    expect(store.create).toHaveBeenCalledWith(id, expect.objectContaining(led))
+  })
+
+  it('rejects LED values on a BILLBOARD with a code under type', async () => {
+    const { app, store, owner } = setup()
+    const { cookie } = await owner()
+
+    const res = await request(app)
+      .post('/api/vendor/placements')
+      .set('Cookie', cookie)
+      .send({ ...validBody, ...led })
+
+    expect(res.status).toBe(400)
+    expect(res.body.fieldErrors.type).toEqual(['validation.led.typeOnly'])
+    expect(store.create).not.toHaveBeenCalled()
+  })
+
+  it.each([0, -5, 1.5])('rejects %s as an LED value', async (value) => {
+    const { app, owner } = setup()
+    const { cookie } = await owner()
+
+    const res = await request(app)
+      .post('/api/vendor/placements')
+      .set('Cookie', cookie)
+      .send({ ...validBody, type: 'LED_SCREEN', ledPlaysPerDay: value })
+
+    expect(res.status).toBe(400)
+    expect(res.body.fieldErrors.ledPlaysPerDay).toEqual(['validation.led.range'])
+  })
+
+  it('PATCH rejects LED values together with a non-LED type', async () => {
+    const { app, store, owner } = setup()
+    const { cookie } = await owner()
+
+    const res = await request(app)
+      .patch(`/api/vendor/placements/${ID}`)
+      .set('Cookie', cookie)
+      .send({ type: 'BILLBOARD', ...led })
+
+    expect(res.status).toBe(400)
+    expect(res.body.fieldErrors.type).toEqual(['validation.led.typeOnly'])
+    expect(store.update).not.toHaveBeenCalled()
+  })
+
+  it('PATCH answers 400 when the store finds the stored type is not LED_SCREEN', async () => {
+    const { app, store, owner } = setup()
+    const { cookie } = await owner()
+    store.update.mockResolvedValueOnce({ kind: 'led_not_allowed' } as never)
+
+    const res = await request(app)
+      .patch(`/api/vendor/placements/${ID}`)
+      .set('Cookie', cookie)
+      .send(led)
+
+    expect(res.status).toBe(400)
+    expect(res.body.code).toBe('INVALID_INPUT')
+    expect(res.body.fieldErrors).toEqual({ type: ['validation.led.typeOnly'] })
   })
 })
 

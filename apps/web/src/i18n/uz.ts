@@ -124,4 +124,6 @@ export const uz = {
   'validation.longitude.range': "Uzunlik O'zbekiston ichida bo'lishi kerak",
   'validation.size.range': "O'lcham 0 dan katta va ko'pi bilan {max} metr bo'lishi kerak",
   'validation.update.empty': "Yangilash uchun hech narsa yo'q",
+  'validation.led.typeOnly': "LED ma'lumotlari faqat LED ekranlar uchun",
+  'validation.led.range': '0 dan katta butun son kiriting',
 } as const

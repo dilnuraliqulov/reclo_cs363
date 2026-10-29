@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { VALIDATION_CODES, validationCodeSchema } from './errors'
 import {
   createPlacementRequestSchema,
+  mapBoundsQuerySchema,
   updatePlacementRequestSchema,
   vendorPlacementListQuerySchema,
 } from './placement'
@@ -163,6 +164,61 @@ describe('updatePlacementRequestSchema', () => {
 
   it('does not accept null to clear a value', () => {
     expect(updatePlacementRequestSchema.safeParse({ description: null }).success).toBe(false)
+  })
+})
+
+describe('LED fields', () => {
+  const led = { ledDurationSeconds: 10, ledPlaysPerDay: 360 }
+
+  it('are accepted for LED_SCREEN, as numbers or numeric strings', () => {
+    const parsed = createPlacementRequestSchema.parse({
+      ...valid,
+      type: 'LED_SCREEN',
+      ledDurationSeconds: '10',
+      ledPlaysPerDay: 360,
+    })
+
+    expect(parsed).toMatchObject(led)
+  })
+
+  it('are optional on an LED_SCREEN', () => {
+    expect(createPlacementRequestSchema.safeParse({ ...valid, type: 'LED_SCREEN' }).success).toBe(
+      true,
+    )
+  })
+
+  it('are rejected for a BILLBOARD, with the same code as the map filter', () => {
+    expect(messages({ ...valid, ...led }, createPlacementRequestSchema, 'type')).toEqual([
+      VALIDATION_CODES.ledTypeOnly,
+    ])
+    expect(
+      messages(
+        { minLat: 1, maxLat: 2, minLng: 1, maxLng: 2, ledPlaysPerDay: 5 },
+        mapBoundsQuerySchema,
+      ),
+    ).toEqual([VALIDATION_CODES.ledTypeOnly])
+  })
+
+  it.each([0, -1, 2.5])('reject %s', (value) => {
+    expect(
+      messages(
+        { ...valid, type: 'LED_SCREEN', ledDurationSeconds: value },
+        undefined,
+        'ledDurationSeconds',
+      ),
+    ).toEqual([VALIDATION_CODES.ledRange])
+  })
+
+  it('on update, are rejected with a non-LED type but allowed without a type', () => {
+    expect(messages({ type: 'BILLBOARD', ...led }, updatePlacementRequestSchema)).toEqual([
+      VALIDATION_CODES.ledTypeOnly,
+    ])
+    expect(updatePlacementRequestSchema.parse(led)).toEqual(led)
+    expect(updatePlacementRequestSchema.parse({ type: 'LED_SCREEN', ...led })).toMatchObject(led)
+  })
+
+  it('on update, a type change alone is a valid edit', () => {
+    expect(updatePlacementRequestSchema.parse({ type: 'BILLBOARD' })).toEqual({ type: 'BILLBOARD' })
   })
 })
 

@@ -2,6 +2,7 @@ import {
   createPlacementRequestSchema,
   LISTING_LIMITS,
   updatePlacementRequestSchema,
+  VALIDATION_CODES,
   vendorPlacementListQuerySchema,
   type ApiError,
   type ErrorCode,
@@ -71,6 +72,13 @@ function sendMutation(
       return
     case 'not_found':
       notFound(res)
+      return
+    case 'led_not_allowed':
+      res.status(400).json({
+        error: 'Invalid input',
+        code: 'INVALID_INPUT',
+        fieldErrors: { type: [VALIDATION_CODES.ledTypeOnly] },
+      } satisfies ApiError)
       return
     case 'conflict':
       send(res, 409, conflict(result.status), 'LISTING_STATE_INVALID')

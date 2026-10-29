@@ -128,4 +128,6 @@ export const ru = {
   'validation.longitude.range': 'Долгота должна быть в пределах Узбекистана',
   'validation.size.range': 'Размер должен быть больше 0 и не более {max} м',
   'validation.update.empty': 'Нечего обновлять',
+  'validation.led.typeOnly': 'Параметры LED доступны только для LED-экранов',
+  'validation.led.range': 'Введите целое число больше 0',
 } as const

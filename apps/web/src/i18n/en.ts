@@ -130,4 +130,6 @@ export const en = {
   'validation.longitude.range': 'Longitude must be inside Uzbekistan',
   'validation.size.range': 'Size must be more than 0 and at most {max} metres',
   'validation.update.empty': 'Nothing to update',
+  'validation.led.typeOnly': 'LED details apply to LED screens only',
+  'validation.led.range': 'Enter a whole number greater than 0',
 } as const

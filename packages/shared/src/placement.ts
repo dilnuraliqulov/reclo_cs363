@@ -10,6 +10,10 @@ export type PlacementStatus = z.infer<typeof placementStatusSchema>
 export const placementTierSchema = z.enum(['BRONZE', 'SILVER', 'GOLD'])
 export type PlacementTier = z.infer<typeof placementTierSchema>
 
+/** LED attributes only mean something for a digital screen; a billboard carrying them is wrong. */
+const hasLedValues = (data: { ledDurationSeconds?: unknown; ledPlaysPerDay?: unknown }) =>
+  data.ledDurationSeconds !== undefined || data.ledPlaysPerDay !== undefined
+
 export const mapBoundsQuerySchema = z
   .object({
     minLat: z.coerce.number().min(-90).max(90),
@@ -31,11 +35,8 @@ export const mapBoundsQuerySchema = z
     message: VALIDATION_CODES.lngOrder,
     path: ['minLng'],
   })
-  .refine((data) => {
-    if (data.ledDurationSeconds === undefined && data.ledPlaysPerDay === undefined) return true
-    return data.type === 'LED_SCREEN'
-  }, {
-    message: 'LED attributes can only be filtered for LED_SCREEN placements',
+  .refine((data) => !hasLedValues(data) || data.type === 'LED_SCREEN', {
+    message: VALIDATION_CODES.ledTypeOnly,
     path: ['type'],
   })
 export type MapBoundsQuery = z.infer<typeof mapBoundsQuerySchema>
@@ -111,7 +112,12 @@ const sizeSchema = z.coerce
   .positive(VALIDATION_CODES.sizeRange)
   .max(LISTING_LIMITS.sizeMax, VALIDATION_CODES.sizeRange)
 
-export const createPlacementRequestSchema = z.object({
+const ledSchema = z.coerce
+  .number(required)
+  .int(VALIDATION_CODES.ledRange)
+  .positive(VALIDATION_CODES.ledRange)
+
+const placementFieldsSchema = z.object({
   title: z
     .string(required)
     .trim()
@@ -143,16 +149,28 @@ export const createPlacementRequestSchema = z.object({
   width: sizeSchema.optional(), // metres
   height: sizeSchema.optional(),
   lighting: z.boolean().default(false),
+  ledDurationSeconds: ledSchema.optional(), // seconds one ad plays; LED_SCREEN only
+  ledPlaysPerDay: ledSchema.optional(),
 })
+
+export const createPlacementRequestSchema = placementFieldsSchema.refine(
+  (data) => !hasLedValues(data) || data.type === 'LED_SCREEN',
+  { message: VALIDATION_CODES.ledTypeOnly, path: ['type'] },
+)
 export type CreatePlacementRequest = z.infer<typeof createPlacementRequestSchema>
 
 // `lighting` has a default on create; a partial of it would re-apply `false` to an edit that never
 // mentioned it, so the default is dropped here.
-export const updatePlacementRequestSchema = createPlacementRequestSchema
+// LED values with no `type` in the body depend on the stored type, which only the store can see.
+export const updatePlacementRequestSchema = placementFieldsSchema
   .extend({ lighting: z.boolean() })
   .partial()
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: VALIDATION_CODES.nothingToUpdate,
+  })
+  .refine((data) => !hasLedValues(data) || data.type === undefined || data.type === 'LED_SCREEN', {
+    message: VALIDATION_CODES.ledTypeOnly,
+    path: ['type'],
   })
 export type UpdatePlacementRequest = z.infer<typeof updatePlacementRequestSchema>
 

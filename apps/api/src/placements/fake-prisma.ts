@@ -10,7 +10,7 @@ export interface FakeRow {
   id: string
   title: string
   description: string | null
-  type: 'BILLBOARD' | 'LED_SCREEN' | 'WALL_MURAL' | 'CITY_FORMAT'
+  type: 'BILLBOARD' | 'LED_SCREEN'
   status: 'ACTIVE' | 'PENDING_REVIEW' | 'INACTIVE' | 'ARCHIVED'
   latitude: number
   longitude: number
@@ -20,6 +20,8 @@ export interface FakeRow {
   width: number | null
   height: number | null
   lighting: boolean
+  ledDurationSeconds: number | null
+  ledPlaysPerDay: number | null
   photos: string[]
   archivedAt: Date | null
   vendorId: string
@@ -71,6 +73,8 @@ export function createFakePrisma(initial: Partial<FakeRow>[] = []) {
     width: null,
     height: null,
     lighting: false,
+    ledDurationSeconds: null,
+    ledPlaysPerDay: null,
     photos: [],
     archivedAt: null,
     vendorId: 'vendor-1',

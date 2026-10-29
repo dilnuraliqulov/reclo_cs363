@@ -164,6 +164,89 @@ describe('update', () => {
   })
 })
 
+describe('LED fields', () => {
+  const led = { ledDurationSeconds: 10, ledPlaysPerDay: 360 }
+
+  it('stores them on create and serialises them', async () => {
+    const { store, rows } = setup([])
+
+    const created = await store.create(OWNER, { ...body, type: 'LED_SCREEN', ...led })
+
+    expect(created).toMatchObject(led)
+    expect(rows[0]).toMatchObject(led)
+  })
+
+  it('serialises null for a listing without them', async () => {
+    const { store } = setup()
+
+    const found = await store.find(OWNER, ID)
+
+    expect(found).toMatchObject({ ledDurationSeconds: null, ledPlaysPerDay: null })
+  })
+
+  it.each(['ACTIVE', 'INACTIVE'] as const)(
+    'editing them on an LED_SCREEN that is %s sends it back to review',
+    async (from) => {
+      const { store } = setup([{ id: ID, vendorId: OWNER, status: from, type: 'LED_SCREEN' }])
+
+      const result = await store.update(OWNER, ID, { ledPlaysPerDay: 720 })
+
+      expect(result.kind === 'ok' && result.placement.status).toBe('PENDING_REVIEW')
+      expect(result.kind === 'ok' && result.placement.ledPlaysPerDay).toBe(720)
+    },
+  )
+
+  it('changing the type away from LED_SCREEN clears them in the same update', async () => {
+    const { store, rows } = setup([
+      { id: ID, vendorId: OWNER, status: 'ACTIVE', type: 'LED_SCREEN', ...led },
+    ])
+
+    const result = await store.update(OWNER, ID, { type: 'BILLBOARD' })
+
+    expect(result.kind === 'ok' && result.placement).toMatchObject({
+      type: 'BILLBOARD',
+      ledDurationSeconds: null,
+      ledPlaysPerDay: null,
+    })
+    expect(rows[0]).toMatchObject({ ledDurationSeconds: null, ledPlaysPerDay: null })
+  })
+
+  it('keeps them when the type stays LED_SCREEN', async () => {
+    const { store } = setup([{ id: ID, vendorId: OWNER, type: 'LED_SCREEN', ...led }])
+
+    const result = await store.update(OWNER, ID, { type: 'LED_SCREEN', title: 'Renamed screen' })
+
+    expect(result.kind === 'ok' && result.placement).toMatchObject(led)
+  })
+
+  it('refuses LED values for a stored BILLBOARD and changes nothing', async () => {
+    const { store, rows } = setup([
+      { id: ID, vendorId: OWNER, status: 'ACTIVE', type: 'BILLBOARD' },
+    ])
+
+    expect(await store.update(OWNER, ID, led)).toEqual({ kind: 'led_not_allowed' })
+    expect(rows[0]).toMatchObject({
+      status: 'ACTIVE',
+      ledDurationSeconds: null,
+      ledPlaysPerDay: null,
+    })
+  })
+
+  it('accepts LED values together with a switch to LED_SCREEN', async () => {
+    const { store } = setup([{ id: ID, vendorId: OWNER, type: 'BILLBOARD' }])
+
+    const result = await store.update(OWNER, ID, { type: 'LED_SCREEN', ...led })
+
+    expect(result.kind === 'ok' && result.placement).toMatchObject({ type: 'LED_SCREEN', ...led })
+  })
+
+  it('still reports an archived BILLBOARD as a conflict, not an LED error', async () => {
+    const { store } = setup([{ id: ID, vendorId: OWNER, status: 'ARCHIVED', type: 'BILLBOARD' }])
+
+    expect(await store.update(OWNER, ID, led)).toEqual({ kind: 'conflict', status: 'ARCHIVED' })
+  })
+})
+
 describe('list and find', () => {
   const rows: Partial<FakeRow>[] = [
     { id: 'a', vendorId: OWNER, status: 'ACTIVE' },
