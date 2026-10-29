@@ -158,6 +158,8 @@ export class PrismaAdminPlacementStore implements AdminPlacementStore {
       width: row.width,
       height: row.height,
       lighting: row.lighting,
+      ledDurationSeconds: row.ledDurationSeconds,
+      ledPlaysPerDay: row.ledPlaysPerDay,
       photos,
       vendorId: row.vendorId,
       createdAt: row.createdAt.toISOString(),

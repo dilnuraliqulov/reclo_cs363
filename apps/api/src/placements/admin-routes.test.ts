@@ -30,6 +30,8 @@ const detail: AdminPlacementDetail = {
   width: null,
   height: null,
   lighting: false,
+  ledDurationSeconds: null,
+  ledPlaysPerDay: null,
   photos: ['https://api.example.com/uploads/placements/x/a.jpg'],
   vendorId: 'vendor-1',
   createdAt: '2026-10-10T10:00:00.000Z',

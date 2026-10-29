@@ -254,6 +254,14 @@ describe('findById', () => {
     expect(found?.events[1]?.reason).toBe(REASON)
   })
 
+  it('carries the LED fields of an LED_SCREEN listing', async () => {
+    const { store } = setup([
+      { id: ID, vendorId: VENDOR, type: 'LED_SCREEN', ledDurationSeconds: 10, ledPlaysPerDay: 360 },
+    ])
+
+    expect(await store.findById(ID)).toMatchObject({ ledDurationSeconds: 10, ledPlaysPerDay: 360 })
+  })
+
   it('answers null for a missing listing', async () => {
     const { store } = setup([])
 
