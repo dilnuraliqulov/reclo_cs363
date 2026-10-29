@@ -145,7 +145,7 @@ describe('AdminVendorsPage', () => {
     await fillForm(user)
     await user.click(screen.getByRole('button', { name: 'Create vendor account' }))
 
-    expect(await screen.findByText('An account with this email already exists')).toBeInTheDocument()
+    expect(await screen.findByText('Email is already registered')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
   })
 

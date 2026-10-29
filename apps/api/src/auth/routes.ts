@@ -9,7 +9,7 @@ import {
 import argon2 from 'argon2'
 import { Router, type CookieOptions, type RequestHandler, type Response } from 'express'
 import { rateLimit } from 'express-rate-limit'
-import { z } from 'zod'
+import { sendValidationError } from '../http'
 import { sessionToken } from './middleware'
 import { SESSION_COOKIE, SESSION_TTL_MS, generateSessionToken, hashSessionToken } from './session'
 import { EmailTakenError, type AuthStore } from './store'
@@ -28,15 +28,6 @@ const INVALID_CREDENTIALS = 'Invalid email or password'
 // Verified against when the email is unknown, so both login failures cost about the same time.
 const dummyHash = argon2.hash('reclo-timing-equalizer')
 
-export function validationError(error: z.ZodError): ApiError {
-  return {
-    error: 'Invalid input',
-    code: 'INVALID_INPUT',
-    // Already codes, not sentences: these schemas are parsed by the web form too.
-    fieldErrors: z.flattenError(error).fieldErrors,
-  }
-}
-
 export function createAuthRouter({
   store,
   requireAuth,
@@ -53,16 +44,21 @@ export function createAuthRouter({
     path: '/',
   }
 
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: rateLimitMax,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    message: {
-      error: 'Too many attempts, try again later',
-      code: 'RATE_LIMITED',
-    } satisfies ApiError,
-  })
+  const createLimiter = () =>
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: rateLimitMax,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: {
+        error: 'Too many attempts, try again later',
+        code: 'RATE_LIMITED',
+      } satisfies ApiError,
+    })
+  // Register and login share one budget; logout has its own, so signing out never eats into the
+  // attempts left for signing in.
+  const limiter = createLimiter()
+  const logoutLimiter = createLimiter()
 
   async function startSession(res: Response, user: PublicUser): Promise<void> {
     const token = generateSessionToken()
@@ -75,7 +71,7 @@ export function createAuthRouter({
     try {
       const parsed = registerRequestSchema.safeParse(req.body)
       if (!parsed.success) {
-        res.status(400).json(validationError(parsed.error))
+        sendValidationError(res, parsed.error)
         return
       }
       const { email, password } = parsed.data
@@ -105,7 +101,7 @@ export function createAuthRouter({
     try {
       const parsed = loginRequestSchema.safeParse(req.body)
       if (!parsed.success) {
-        res.status(400).json(validationError(parsed.error))
+        sendValidationError(res, parsed.error)
         return
       }
       const { email, password } = parsed.data
@@ -125,7 +121,7 @@ export function createAuthRouter({
     }
   })
 
-  router.post('/logout', async (req, res, next) => {
+  router.post('/logout', logoutLimiter, async (req, res, next) => {
     try {
       const token = sessionToken(req)
       if (token) await store.deleteSessionByTokenHash(hashSessionToken(token))

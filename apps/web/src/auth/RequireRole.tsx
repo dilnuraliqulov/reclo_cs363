@@ -3,9 +3,9 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from './useAuth'
 
 /**
- * Layout route for screens one role may use. Signed-out visitors go to sign-in and come back, as
- * with `RequireAuth`; a signed-in user with another role is sent home. The API enforces the role
- * on every request — this only avoids rendering a page whose requests would all fail.
+ * Layout route for screens only one role may use. Signed-out visitors go to sign-in and come back
+ * here; a signed-in user of another role is sent home rather than shown a dead end. The server
+ * checks the role on every call as well, so this guard is for the reader, not for security.
  */
 export function RequireRole({ role }: { role: Role }) {
   const { user, isLoading } = useAuth()

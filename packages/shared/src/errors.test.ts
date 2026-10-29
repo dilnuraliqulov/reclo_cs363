@@ -1,3 +1,5 @@
+import { z } from 'zod'
+import { registerRequestSchema } from './auth'
 import { describe, expect, it } from 'vitest'
 import { apiErrorSchema, errorCodeSchema, VALIDATION_CODES, validationCodeSchema } from './errors'
 
@@ -58,5 +60,30 @@ describe('the code enums', () => {
     for (const code of errorCodeSchema.options) {
       expect(code).toBe(code.toUpperCase())
     }
+  })
+})
+
+describe('default validation messages (KAN-80)', () => {
+  it('turns a missing key into validation.required instead of a Zod sentence', () => {
+    const result = registerRequestSchema.safeParse({})
+    expect(z.flattenError(result.error!).fieldErrors).toEqual({
+      email: [VALIDATION_CODES.required],
+      password: [VALIDATION_CODES.required],
+    })
+  })
+
+  it('turns a wrong type into validation.invalid', () => {
+    const result = registerRequestSchema.safeParse({ email: 1, password: { a: 1 } })
+    expect(z.flattenError(result.error!).fieldErrors).toEqual({
+      email: [VALIDATION_CODES.invalid],
+      password: [VALIDATION_CODES.invalid],
+    })
+  })
+
+  it('keeps the code a schema sets itself', () => {
+    const result = registerRequestSchema.safeParse({ email: 'a@b.co', password: 'short' })
+    expect(z.flattenError(result.error!).fieldErrors.password).toEqual([
+      VALIDATION_CODES.passwordTooShort,
+    ])
   })
 })

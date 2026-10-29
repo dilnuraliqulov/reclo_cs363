@@ -7,13 +7,16 @@ import {
 } from '@reclo/shared'
 import argon2 from 'argon2'
 import { Router, type RequestHandler } from 'express'
+import { rateLimit } from 'express-rate-limit'
 import { requireRole } from '../auth/middleware'
-import { validationError } from '../auth/routes'
 import { EmailTakenError, type AuthStore } from '../auth/store'
+import { sendValidationError } from '../http'
 
 export interface AdminRouterOptions {
   store: AuthStore
   requireAuth: RequestHandler
+  /** Max vendor creations per IP per 15 minutes. */
+  rateLimitMax: number
 }
 
 /**
@@ -22,17 +25,33 @@ export interface AdminRouterOptions {
  */
 export const VENDOR_LIST_LIMIT = 200
 
-export function createAdminRouter({ store, requireAuth }: AdminRouterOptions): Router {
+export function createAdminRouter({
+  store,
+  requireAuth,
+  rateLimitMax,
+}: AdminRouterOptions): Router {
   const router = Router()
 
   // On the whole router, so a route added here later cannot forget them.
   router.use(requireAuth, requireRole('ADMIN'))
 
-  router.post('/vendors', async (req, res, next) => {
+  // Each creation hashes a password with argon2, so it is limited like the other write routes.
+  const createLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: rateLimitMax,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+      error: 'Too many attempts, try again later',
+      code: 'RATE_LIMITED',
+    } satisfies ApiError,
+  })
+
+  router.post('/', createLimiter, async (req, res, next) => {
     try {
       const parsed = createVendorRequestSchema.safeParse(req.body)
       if (!parsed.success) {
-        res.status(400).json(validationError(parsed.error))
+        sendValidationError(res, parsed.error)
         return
       }
       const { email, companyName, password } = parsed.data
@@ -64,7 +83,7 @@ export function createAdminRouter({ store, requireAuth }: AdminRouterOptions): R
     }
   })
 
-  router.get('/vendors', async (_req, res, next) => {
+  router.get('/', async (_req, res, next) => {
     try {
       const vendors = await store.listVendors(VENDOR_LIST_LIMIT)
       res.json({ vendors } satisfies VendorListResponse)

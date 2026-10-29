@@ -71,20 +71,56 @@ describe('AuthControls inquiry history link', () => {
   })
 })
 
+describe('AuthControls vendor link', () => {
+  it('offers a vendor My listings, and no inquiry history', async () => {
+    stubSession('VENDOR')
+    renderControls()
+
+    const link = await screen.findByRole('link', { name: 'My listings' })
+    expect(link).toHaveAttribute('href', '/vendor/placements')
+    expect(screen.queryByRole('link', { name: 'My inquiries' })).not.toBeInTheDocument()
+  })
+
+  it.each<Role>(['CLIENT', 'ADMIN'])('does not offer %s My listings', async (role) => {
+    stubSession(role)
+    renderControls()
+
+    await screen.findByText(`${role.toLowerCase()}@example.com`)
+    expect(screen.queryByRole('link', { name: 'My listings' })).not.toBeInTheDocument()
+  })
+
+  it('does not offer a signed-out visitor My listings', async () => {
+    stubSession(null)
+    renderControls()
+
+    await screen.findByRole('link', { name: 'Sign in' })
+    expect(screen.queryByRole('link', { name: 'My listings' })).not.toBeInTheDocument()
+  })
+})
+
 describe('AuthControls admin vendors link', () => {
-  it('offers an admin the way to the vendor accounts screen', async () => {
+  it('offers an admin the way to the vendor accounts screen, next to moderation', async () => {
     stubSession('ADMIN')
     renderControls()
 
     const link = await screen.findByRole('link', { name: 'Vendors' })
     expect(link).toHaveAttribute('href', '/admin/vendors')
+    expect(screen.getByRole('link', { name: 'Moderation' })).toBeInTheDocument()
   })
 
-  it.each(['CLIENT', 'VENDOR'] as const)('does not offer it to a %s', async (role) => {
+  it.each<Role>(['CLIENT', 'VENDOR'])('does not offer it to a %s', async (role) => {
     stubSession(role)
     renderControls()
 
-    await screen.findByRole('button', { name: 'Sign out' })
+    await screen.findByText(`${role.toLowerCase()}@example.com`)
+    expect(screen.queryByRole('link', { name: 'Vendors' })).not.toBeInTheDocument()
+  })
+
+  it('does not offer it to a signed-out visitor', async () => {
+    stubSession(null)
+    renderControls()
+
+    await screen.findByRole('link', { name: 'Sign in' })
     expect(screen.queryByRole('link', { name: 'Vendors' })).not.toBeInTheDocument()
   })
 })

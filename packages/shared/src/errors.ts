@@ -14,12 +14,24 @@ export const errorCodeSchema = z.enum([
   'INVALID_INPUT',
   'INVALID_QUERY',
   'MALFORMED_JSON',
+  'PAYLOAD_TOO_LARGE',
+  'UNSUPPORTED_MEDIA_TYPE',
+  'NOT_FOUND',
   'INVALID_PLACEMENT_ID',
   'PLACEMENT_NOT_FOUND',
   'DUPLICATE_INQUIRY',
   'RATE_LIMITED',
   'MARKER_QUERY_FAILED',
   'PLACEMENT_FETCH_FAILED',
+  'LISTING_STATE_INVALID',
+  'PHOTO_REQUIRED',
+  'PHOTO_LIMIT',
+  'PHOTO_TOO_LARGE',
+  'PHOTO_TYPE_INVALID',
+  'PHOTO_NOT_FOUND',
+  'PLACEMENT_NOT_PENDING',
+  'PLACEMENT_CHANGED',
+  'PLACEMENT_NO_PHOTOS',
   'INTERNAL',
 ])
 export type ErrorCode = z.infer<typeof errorCodeSchema>
@@ -43,9 +55,37 @@ export const VALIDATION_CODES = {
   cursorInvalid: 'validation.cursor.invalid',
   latOrder: 'validation.bounds.latOrder',
   lngOrder: 'validation.bounds.lngOrder',
+  required: 'validation.required',
+  invalid: 'validation.invalid',
+  titleLength: 'validation.title.length',
+  descriptionTooLong: 'validation.description.tooLong',
+  addressLength: 'validation.address.length',
+  cityLength: 'validation.city.length',
+  priceRange: 'validation.price.range',
+  latitudeRange: 'validation.latitude.range',
+  longitudeRange: 'validation.longitude.range',
+  sizeRange: 'validation.size.range',
+  nothingToUpdate: 'validation.update.empty',
+  ledTypeOnly: 'validation.led.typeOnly',
+  ledRange: 'validation.led.range',
+  reasonTooShort: 'validation.reason.tooShort',
+  reasonTooLong: 'validation.reason.tooLong',
   companyNameRequired: 'validation.companyName.required',
   companyNameTooLong: 'validation.companyName.tooLong',
 } as const
+
+/**
+ * Zod's built-in messages are English sentences ("Invalid input: expected string, received
+ * undefined"). Any issue a schema did not give its own code lands here instead, so a wrong type or
+ * a missing key reaches the reader as a code and never as a sentence (KAN-80). A message set on a
+ * schema still wins over this, as it does over Zod's own default.
+ */
+z.config({
+  customError: (issue) =>
+    issue.code === 'invalid_type' && issue.input === undefined
+      ? VALIDATION_CODES.required
+      : VALIDATION_CODES.invalid,
+})
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)
 export type ValidationCode = z.infer<typeof validationCodeSchema>

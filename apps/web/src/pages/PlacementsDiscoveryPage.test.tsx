@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { AuthContext } from '@/auth/useAuth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CartProvider } from '@/components/cart/CartProvider'
 import { PlacementsDiscoveryPage } from './PlacementsDiscoveryPage'
 
 vi.mock('@/lib/api', () => ({
@@ -62,6 +63,7 @@ function renderWithProviders() {
         </AuthContext.Provider>
       </MemoryRouter>
     </QueryClientProvider>,
+    { wrapper: CartProvider },
   )
 }
 

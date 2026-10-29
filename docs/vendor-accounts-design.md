@@ -28,13 +28,16 @@ a question nobody has needed to ask yet — where the first admin comes from.
   vendor's email, the route returns `409 EMAIL_TAKEN`. Silently turning a client into a vendor would
   hand their inquiry history to a different kind of account; changing a role is a separate,
   deliberate action and is out of scope.
-- **The first admin comes from a CLI script, not the API.** `pnpm --filter @reclo/api admin:create`
-  reads an email and password from environment variables and creates (or refuses to overwrite) an
-  `ADMIN`. Any HTTP route that can create an admin is a route that has to be locked down forever; a
+- **The first admin comes from a CLI script, not the API.** `pnpm db:seed-admin` (from the
+  moderation work) reads `ADMIN_EMAIL` and `ADMIN_PASSWORD` from the environment and creates an
+  `ADMIN`; it is the only bootstrap mechanism, and this task adds no second one. Any HTTP route that can create an admin is a route that has to be locked down forever; a
   script that needs database credentials is already locked down.
-- **Admin screens are English only.** The i18n design (KAN-76) scopes translation to the client-facing
-  UI. Strings still go in a `copy` object at the top of the page so they can move into the catalogs
-  later, as the client pages did.
+- **The screen is localized (uz/ru/en).** Moderation set the precedent that admin screens use the
+  catalog, so `adminVendors.*` keys live in all three languages. API failures are error codes
+  (`EMAIL_TAKEN`, `validation.*`), turned into words by the web app.
+- **Same protections as every write route (KAN-80).** `POST /api/admin/vendors` sits behind
+  `requireAuth` + `requireRole('ADMIN')`, a rate limiter, the 16 KB JSON limit and the standard error
+  shape, and is listed in `write-routes.test.ts`.
 
 ## Data model (Prisma)
 
@@ -115,13 +118,12 @@ Pagination can be added the same way inquiry history did it if that stops being 
 `AuthStore` gains `createVendor` and `listVendors`, implemented in `prisma-store.ts`, so route tests
 keep passing stubs and need no database.
 
-## Bootstrap admin script
+## Bootstrap admin
 
-`apps/api/src/scripts/create-admin.ts` (logic in `src/admin/bootstrap.ts`), run as `pnpm --filter @reclo/api admin:create` with
-`ADMIN_EMAIL` and `ADMIN_PASSWORD` set. It validates both with the shared schemas, hashes the
-password, and creates an `ADMIN`. If the email already exists it exits non-zero without changing the
-row — re-running the script must not reset a live admin's password or promote a client. The README
-gets one line on how to use it.
+No script is added here. The first admin is created with `pnpm db:seed-admin`
+(`apps/api/src/seed/run.ts`, documented in the README), which validates the credentials with the
+shared register schema, hashes the password and is safe to re-run: an existing account keeps its
+password and only has its role set to ADMIN.
 
 ## Screen (`/admin/vendors`)
 
@@ -176,7 +178,7 @@ check is the real guard; the client-side one only avoids showing a page that wou
 - The new vendor can sign in through `/api/auth/login`; the admin's own session is unchanged.
 - Web: the page redirects non-admins; validation messages render; Generate fills a 16-character
   password; a `409` marks the email field; success resets the form and shows the new row.
-- The bootstrap script refuses an existing email and does not modify it.
+- The bootstrap is `pnpm db:seed-admin`, covered by `src/seed/admin.test.ts`.
 
 ## Out of scope
 

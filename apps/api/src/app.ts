@@ -1,15 +1,27 @@
-import type { ApiError, HealthResponse } from '@reclo/shared'
+import type { HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import express, { type ErrorRequestHandler, type Express } from 'express'
+import express, { type Express } from 'express'
 import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import {
+  errorHandler,
+  JSON_BODY_LIMIT,
+  notFoundHandler,
+  rejectNulBytes,
+  requireJsonBody,
+} from './http'
 import { createInquiryRouter } from './inquiries/routes'
 import type { InquiryStore } from './inquiries/store'
+import { createAdminPlacementRouter } from './placements/admin-routes'
+import type { AdminPlacementStore } from './placements/admin-store'
 import { createPlacementRouter } from './placements/routes'
+import type { PhotoStorage } from './placements/photo-storage'
 import type { PlacementStore } from './placements/store'
+import type { VendorPlacementStore } from './placements/vendor-store'
+import { createVendorPlacementRouter } from './placements/vendor-routes'
 
 export interface AppDependencies {
   /** Rejects when the database cannot be reached. */
@@ -18,6 +30,14 @@ export interface AppDependencies {
   authStore: AuthStore
   /** Placements persistence. */
   placementStore?: PlacementStore
+  /** Vendor listing persistence. The `/api/vendor/placements` routes are mounted only when present. */
+  vendorPlacementStore?: VendorPlacementStore
+  /** Moderation persistence. The `/api/admin/placements` routes are mounted only when present. */
+  adminPlacementStore?: AdminPlacementStore
+  /** Where listing photos go. Without it the photo upload and delete routes are not mounted. */
+  photoStorage?: PhotoStorage
+  /** Directory served at `/uploads`. Omit to serve nothing (tests). */
+  uploadsDir?: string
   /** Inquiries persistence. */
   inquiryStore?: InquiryStore
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
@@ -28,6 +48,10 @@ export interface AppDependencies {
   authRateLimitMax?: number
   /** Max inquiry submissions per IP per 15 minutes. Defaults to 20. */
   inquiryRateLimitMax?: number
+  /** Max mutating vendor listing requests per IP per 15 minutes. Defaults to 120. */
+  vendorRateLimitMax?: number
+  /** Max approve + reject + create-vendor requests per IP per 15 minutes. Defaults to 120. */
+  adminRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
 }
@@ -37,10 +61,16 @@ export function createApp({
   authStore,
   placementStore,
   inquiryStore,
+  vendorPlacementStore,
+  adminPlacementStore,
+  photoStorage,
+  uploadsDir,
   corsOrigin,
   now = () => new Date(),
   authRateLimitMax = 20,
   inquiryRateLimitMax = 20,
+  vendorRateLimitMax = 120,
+  adminRateLimitMax = 120,
   secureCookies = false,
 }: AppDependencies): Express {
   const app = express()
@@ -48,7 +78,9 @@ export function createApp({
   if (corsOrigin) {
     app.use(cors({ origin: corsOrigin, credentials: true }))
   }
-  app.use(express.json())
+  app.use(requireJsonBody)
+  app.use(express.json({ limit: JSON_BODY_LIMIT }))
+  app.use(rejectNulBytes)
   app.use(cookieParser())
 
   app.get('/health', async (_req, res) => {
@@ -73,10 +105,48 @@ export function createApp({
     }),
   )
 
-  app.use('/api/admin', createAdminRouter({ store: authStore, requireAuth }))
+  app.use(
+    '/api/admin/vendors',
+    createAdminRouter({ store: authStore, requireAuth, rateLimitMax: adminRateLimitMax }),
+  )
 
   if (placementStore) {
     app.use('/api/placements', createPlacementRouter({ store: placementStore }))
+  }
+
+  if (vendorPlacementStore) {
+    app.use(
+      '/api/vendor/placements',
+      createVendorPlacementRouter({
+        store: vendorPlacementStore,
+        photos: photoStorage,
+        requireAuth,
+        rateLimitMax: vendorRateLimitMax,
+      }),
+    )
+  }
+
+  if (adminPlacementStore) {
+    app.use(
+      '/api/admin/placements',
+      createAdminPlacementRouter({
+        store: adminPlacementStore,
+        requireAuth,
+        rateLimitMax: adminRateLimitMax,
+      }),
+    )
+  }
+
+  if (uploadsDir) {
+    // Photos are public, like the listings they belong to. `nosniff` keeps a browser from treating
+    // a file as anything but the image type its extension says.
+    app.use(
+      '/uploads',
+      express.static(uploadsDir, {
+        index: false,
+        setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+      }),
+    )
   }
 
   if (inquiryStore) {
@@ -91,16 +161,7 @@ export function createApp({
     )
   }
 
-  // Express identifies error handlers by their four parameters, so `next` must stay.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-    if (error?.type === 'entity.parse.failed') {
-      res.status(400).json({ error: 'Malformed JSON', code: 'MALFORMED_JSON' } satisfies ApiError)
-      return
-    }
-    console.error('Unhandled error', error)
-    res.status(500).json({ error: 'Something went wrong', code: 'INTERNAL' } satisfies ApiError)
-  }
+  app.use(notFoundHandler)
   app.use(errorHandler)
 
   return app

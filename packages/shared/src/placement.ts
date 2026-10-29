@@ -4,11 +4,21 @@ import { VALIDATION_CODES } from './errors'
 export const placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN'])
 export type PlacementType = z.infer<typeof placementTypeSchema>
 
-export const placementStatusSchema = z.enum(['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED'])
+export const placementStatusSchema = z.enum([
+  'ACTIVE',
+  'PENDING_REVIEW',
+  'INACTIVE',
+  'REJECTED',
+  'ARCHIVED',
+])
 export type PlacementStatus = z.infer<typeof placementStatusSchema>
 
 export const placementTierSchema = z.enum(['BRONZE', 'SILVER', 'GOLD'])
 export type PlacementTier = z.infer<typeof placementTierSchema>
+
+/** LED attributes only mean something for a digital screen; a billboard carrying them is wrong. */
+const hasLedValues = (data: { ledDurationSeconds?: unknown; ledPlaysPerDay?: unknown }) =>
+  data.ledDurationSeconds !== undefined || data.ledPlaysPerDay !== undefined
 
 export const mapBoundsQuerySchema = z
   .object({
@@ -31,11 +41,8 @@ export const mapBoundsQuerySchema = z
     message: VALIDATION_CODES.lngOrder,
     path: ['minLng'],
   })
-  .refine((data) => {
-    if (data.ledDurationSeconds === undefined && data.ledPlaysPerDay === undefined) return true
-    return data.type === 'LED_SCREEN'
-  }, {
-    message: 'LED attributes can only be filtered for LED_SCREEN placements',
+  .refine((data) => !hasLedValues(data) || data.type === 'LED_SCREEN', {
+    message: VALIDATION_CODES.ledTypeOnly,
     path: ['type'],
   })
 export type MapBoundsQuery = z.infer<typeof mapBoundsQuerySchema>
@@ -74,3 +81,126 @@ export const placementDetailSchema = placementMarkerSchema.extend({
   updatedAt: z.string(),
 })
 export type PlacementDetail = z.infer<typeof placementDetailSchema>
+
+/** Bounds of the listing editor, exported so the web can fill in the `{min}`/`{max}` of a message. */
+export const LISTING_LIMITS = {
+  titleMin: 5,
+  titleMax: 120,
+  descriptionMax: 2000,
+  addressMin: 3,
+  addressMax: 200,
+  cityMin: 2,
+  cityMax: 80,
+  priceMin: 100_000,
+  priceMax: 1_000_000_000,
+  sizeMax: 100,
+  maxPhotos: 8,
+  maxPhotoBytes: 5 * 1024 * 1024,
+} as const
+
+// Uzbekistan bounding box, the same one the map clamps to (map-design.md). A lat/lng swap falls
+// outside it, so it is rejected too.
+export const UZ_BOUNDS = { minLat: 37.0, maxLat: 45.6, minLng: 56.0, maxLng: 73.2 } as const
+
+const required = { error: VALIDATION_CODES.required }
+
+const latitudeSchema = z
+  .number(required)
+  .min(UZ_BOUNDS.minLat, VALIDATION_CODES.latitudeRange)
+  .max(UZ_BOUNDS.maxLat, VALIDATION_CODES.latitudeRange)
+const longitudeSchema = z
+  .number(required)
+  .min(UZ_BOUNDS.minLng, VALIDATION_CODES.longitudeRange)
+  .max(UZ_BOUNDS.maxLng, VALIDATION_CODES.longitudeRange)
+
+const sizeSchema = z.coerce
+  .number(required)
+  .positive(VALIDATION_CODES.sizeRange)
+  .max(LISTING_LIMITS.sizeMax, VALIDATION_CODES.sizeRange)
+
+const ledSchema = z.coerce
+  .number(required)
+  .int(VALIDATION_CODES.ledRange)
+  .positive(VALIDATION_CODES.ledRange)
+
+const placementFieldsSchema = z.object({
+  title: z
+    .string(required)
+    .trim()
+    .min(LISTING_LIMITS.titleMin, VALIDATION_CODES.titleLength)
+    .max(LISTING_LIMITS.titleMax, VALIDATION_CODES.titleLength),
+  description: z
+    .string()
+    .trim()
+    .max(LISTING_LIMITS.descriptionMax, VALIDATION_CODES.descriptionTooLong)
+    .optional(),
+  type: z.enum(placementTypeSchema.options, required),
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+  address: z
+    .string(required)
+    .trim()
+    .min(LISTING_LIMITS.addressMin, VALIDATION_CODES.addressLength)
+    .max(LISTING_LIMITS.addressMax, VALIDATION_CODES.addressLength),
+  city: z
+    .string(required)
+    .trim()
+    .min(LISTING_LIMITS.cityMin, VALIDATION_CODES.cityLength)
+    .max(LISTING_LIMITS.cityMax, VALIDATION_CODES.cityLength),
+  pricePerMonth: z.coerce
+    .number(required)
+    .int(VALIDATION_CODES.priceRange)
+    .min(LISTING_LIMITS.priceMin, VALIDATION_CODES.priceRange)
+    .max(LISTING_LIMITS.priceMax, VALIDATION_CODES.priceRange), // UZS
+  width: sizeSchema.optional(), // metres
+  height: sizeSchema.optional(),
+  lighting: z.boolean().default(false),
+  ledDurationSeconds: ledSchema.optional(), // seconds one ad plays; LED_SCREEN only
+  ledPlaysPerDay: ledSchema.optional(),
+})
+
+export const createPlacementRequestSchema = placementFieldsSchema.refine(
+  (data) => !hasLedValues(data) || data.type === 'LED_SCREEN',
+  { message: VALIDATION_CODES.ledTypeOnly, path: ['type'] },
+)
+export type CreatePlacementRequest = z.infer<typeof createPlacementRequestSchema>
+/** What the editor form holds before validation: price and size are coerced from text. */
+export type CreatePlacementFormValues = z.input<typeof createPlacementRequestSchema>
+
+// `lighting` has a default on create; a partial of it would re-apply `false` to an edit that never
+// mentioned it, so the default is dropped here.
+// LED values with no `type` in the body depend on the stored type, which only the store can see.
+export const updatePlacementRequestSchema = placementFieldsSchema
+  .extend({ lighting: z.boolean() })
+  .partial()
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: VALIDATION_CODES.nothingToUpdate,
+  })
+  .refine((data) => !hasLedValues(data) || data.type === undefined || data.type === 'LED_SCREEN', {
+    message: VALIDATION_CODES.ledTypeOnly,
+    path: ['type'],
+  })
+export type UpdatePlacementRequest = z.infer<typeof updatePlacementRequestSchema>
+
+export const vendorPlacementListQuerySchema = z.object({
+  status: placementStatusSchema.optional(), // omitted = every status except ARCHIVED
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+})
+export type VendorPlacementListQuery = z.infer<typeof vendorPlacementListQuerySchema>
+
+export const vendorPlacementSchema = placementDetailSchema.extend({
+  archivedAt: z.string().nullable(),
+  /** The admin's reason, only while status is REJECTED (docs/moderation-design.md). */
+  rejectionReason: z.string().nullable(),
+})
+export type VendorPlacement = z.infer<typeof vendorPlacementSchema>
+
+export const vendorPlacementResponseSchema = z.object({ placement: vendorPlacementSchema })
+export type VendorPlacementResponse = z.infer<typeof vendorPlacementResponseSchema>
+
+export const vendorPlacementListResponseSchema = z.object({
+  placements: z.array(vendorPlacementSchema),
+  total: z.number().int().nonnegative(),
+})
+export type VendorPlacementListResponse = z.infer<typeof vendorPlacementListResponseSchema>
