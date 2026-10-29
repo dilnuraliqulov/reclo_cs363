@@ -90,6 +90,7 @@ model Placement {
   inquiries     Inquiry[]
   moderationEvents ModerationEvent[]
   cartItems     CartItem[]
+  pricing       PlacementPricing?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -162,4 +163,17 @@ model CartItem {
 
   @@id([userId, placementId]) // also serves "this user's cart"
   @@index([placementId]) // serves the cascade when a placement is deleted
+}
+
+// A vendor's term x duration price list (KAN-11). One row per placement. Prices are net, in
+// tiyin, row-major (`prices[term][duration]`); see packages/shared/src/pricing.ts.
+model PlacementPricing {
+  placementId String    @id
+  placement   Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  terms       Int[]
+  durations   Int[]
+  prices      Json
+  vatEnabled  Boolean   @default(false)
+  vatRate     Int       @default(1200) // basis points
+  updatedAt   DateTime  @updatedAt
 }
