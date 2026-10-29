@@ -15,6 +15,7 @@ vi.mock('leaflet', () => {
       bindPopup: vi.fn().mockReturnThis(),
       on: vi.fn().mockReturnThis(),
       getLatLng: vi.fn(() => ({ lat: 41.311, lng: 69.279 })),
+      setLatLng: vi.fn().mockReturnThis(),
       isPopupOpen: vi.fn(() => popupOpen),
       openPopup: vi.fn(() => {
         popupOpen = true
