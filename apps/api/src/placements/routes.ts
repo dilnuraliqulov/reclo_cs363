@@ -2,11 +2,10 @@ import {
   type ApiError,
   mapBoundsQuerySchema,
   type MapMarkersResponse,
-  type PlacementDetail,
 } from '@reclo/shared'
 import { Router } from 'express'
 import { z } from 'zod'
-import type { PlacementStore } from './store'
+import type { PlacementDetailWithPricing, PlacementStore } from './store'
 
 export function createPlacementRouter({ store }: { store: PlacementStore }): Router {
   const router = Router()
@@ -64,7 +63,7 @@ export function createPlacementRouter({ store }: { store: PlacementStore }): Rou
         return
       }
 
-      res.json(placement satisfies PlacementDetail)
+      res.json(placement satisfies PlacementDetailWithPricing)
     } catch (error) {
       console.error('Failed to fetch placement detail', error)
       res.status(500).json({

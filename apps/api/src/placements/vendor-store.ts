@@ -1,5 +1,6 @@
 import type {
   CreatePlacementRequest,
+  PlacementPricing,
   PlacementStatus,
   UpdatePlacementRequest,
   VendorPlacement,
@@ -16,6 +17,15 @@ export type MutationResult =
   | { kind: 'conflict'; status: PlacementStatus }
   /** LED values sent for a listing that is not an LED screen (and the body did not change that). */
   | { kind: 'led_not_allowed' }
+
+/** `pricing` is null until the vendor saves a price list. */
+export type GetPricingResult =
+  | { kind: 'ok'; pricing: PlacementPricing | null }
+  | { kind: 'not_found' }
+export type SavePricingResult =
+  | { kind: 'ok'; pricing: PlacementPricing }
+  | { kind: 'not_found' }
+  | { kind: 'conflict'; status: PlacementStatus }
 
 export type AddPhotoResult = MutationResult | { kind: 'photo_limit' }
 export type RemovePhotoResult = MutationResult | { kind: 'photo_missing' }
@@ -38,4 +48,11 @@ export interface VendorPlacementStore {
   addPhoto: (vendorId: string, id: string, photoPath: string) => Promise<AddPhotoResult>
   /** Drops a site-relative photo path; counts as a content edit. */
   removePhoto: (vendorId: string, id: string, photoPath: string) => Promise<RemovePhotoResult>
+  getPricing: (vendorId: string, id: string) => Promise<GetPricingResult>
+  /** Creates or replaces the price list. Archived listings answer `conflict`. */
+  savePricing: (
+    vendorId: string,
+    id: string,
+    pricing: PlacementPricing,
+  ) => Promise<SavePricingResult>
 }

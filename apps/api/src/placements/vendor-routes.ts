@@ -1,10 +1,12 @@
 import {
   createPlacementRequestSchema,
   LISTING_LIMITS,
+  placementPricingSchema,
   updatePlacementRequestSchema,
   VALIDATION_CODES,
   vendorPlacementListQuerySchema,
   type ApiError,
+  type PlacementPricing,
   type VendorPlacementListResponse,
   type VendorPlacementResponse,
 } from '@reclo/shared'
@@ -180,6 +182,35 @@ export function createVendorPlacementRouter({
 
   router.post('/:id/resume', async (req, res) => {
     sendMutation(res, await store.resume(vendorId(res), req.params.id), CONFLICT_MESSAGES.resume)
+  })
+
+  router.get('/:id/pricing', async (req, res) => {
+    const result = await store.getPricing(vendorId(res), req.params.id)
+    if (result.kind === 'not_found') {
+      notFound(res)
+      return
+    }
+    res.json({ pricing: result.pricing } satisfies { pricing: PlacementPricing | null })
+  })
+
+  router.put('/:id/pricing', async (req, res) => {
+    const parsed = placementPricingSchema.safeParse(req.body)
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error)
+      return
+    }
+    const result = await store.savePricing(vendorId(res), req.params.id, parsed.data)
+    switch (result.kind) {
+      case 'ok':
+        res.json({ pricing: result.pricing } satisfies { pricing: PlacementPricing })
+        return
+      case 'not_found':
+        notFound(res)
+        return
+      case 'conflict':
+        send(res, 409, ARCHIVED_MESSAGE, 'LISTING_STATE_INVALID')
+        return
+    }
   })
 
   if (photos) {

@@ -10,6 +10,8 @@ import {
   inquiryResponseSchema,
   mapMarkersResponseSchema,
   placementDetailSchema,
+  publicPricingSchema,
+  type PublicPricing,
   type AdminPlacementDetail,
   type AdminPlacementListQuery,
   type AdminPlacementListResponse,
@@ -141,7 +143,13 @@ export async function fetchPlacementMarkers(params: MapBoundsQuery): Promise<Map
   return mapMarkersResponseSchema.parse(data)
 }
 
-export async function fetchPlacementDetail(id: string): Promise<PlacementDetail> {
+/** The public detail plus the vendor's price grid with VAT applied (KAN-11), when one is set. */
+const placementDetailWithPricingSchema = placementDetailSchema.extend({
+  pricing: publicPricingSchema.nullable().optional(),
+})
+export type PlacementDetailWithPricing = PlacementDetail & { pricing?: PublicPricing | null }
+
+export async function fetchPlacementDetail(id: string): Promise<PlacementDetailWithPricing> {
   const response = await fetch(`${API_URL}/api/placements/${id}`)
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
@@ -154,7 +162,7 @@ export async function fetchPlacementDetail(id: string): Promise<PlacementDetail>
   }
 
   const data = await response.json()
-  return placementDetailSchema.parse(data)
+  return placementDetailWithPricingSchema.parse(data)
 }
 
 export const register = (input: RegisterRequest) => requestUser('/api/auth/register', 'POST', input)

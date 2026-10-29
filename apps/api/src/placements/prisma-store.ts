@@ -1,7 +1,8 @@
-import type { MapBoundsQuery, PlacementDetail, PlacementMarker } from '@reclo/shared'
+import { toPublicPricing, type MapBoundsQuery, type PlacementMarker } from '@reclo/shared'
 import type { PrismaClient } from '../generated/prisma/client'
 import { publicPhotoUrl } from './photo-storage'
-import type { PlacementStore } from './store'
+import { toPlacementPricing } from './pricing'
+import type { PlacementDetailWithPricing, PlacementStore } from './store'
 import { getPlacementTier } from './tier'
 
 export class PrismaPlacementStore implements PlacementStore {
@@ -80,7 +81,7 @@ export class PrismaPlacementStore implements PlacementStore {
     }))
   }
 
-  async findPlacementDetail(id: string): Promise<PlacementDetail | null> {
+  async findPlacementDetail(id: string): Promise<PlacementDetailWithPricing | null> {
     const placement = await this.prisma.placement.findFirst({
       where: {
         id,
@@ -106,6 +107,7 @@ export class PrismaPlacementStore implements PlacementStore {
         vendorId: true,
         createdAt: true,
         updatedAt: true,
+        pricing: true,
       },
     })
 
@@ -137,6 +139,7 @@ export class PrismaPlacementStore implements PlacementStore {
       vendorId: placement.vendorId,
       createdAt: placement.createdAt.toISOString(),
       updatedAt: placement.updatedAt.toISOString(),
+      pricing: placement.pricing ? toPublicPricing(toPlacementPricing(placement.pricing)) : null,
     }
   }
 }

@@ -1,6 +1,7 @@
 import {
   LISTING_LIMITS,
   type CreatePlacementRequest,
+  type PlacementPricing,
   type PlacementStatus,
   type UpdatePlacementRequest,
   type VendorPlacement,
@@ -9,10 +10,13 @@ import {
 import type { PrismaClient } from '../generated/prisma/client'
 import { publicPhotoUrl } from './photo-storage'
 import { getPlacementTier } from './tier'
+import { toPlacementPricing } from './pricing'
 import type {
   AddPhotoResult,
+  GetPricingResult,
   MutationResult,
   RemovePhotoResult,
+  SavePricingResult,
   VendorPlacementStore,
 } from './vendor-store'
 
@@ -134,6 +138,41 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
     return this.editPhotos(vendorId, id, (photos) =>
       photos.includes(photoPath) ? photos.filter((p) => p !== photoPath) : 'photo_missing',
     )
+  }
+
+  async getPricing(vendorId: string, id: string): Promise<GetPricingResult> {
+    const row = await this.prisma.placement.findFirst({
+      where: { id, vendorId },
+      select: { pricing: true },
+    })
+    if (!row) return { kind: 'not_found' }
+    return { kind: 'ok', pricing: row.pricing ? toPlacementPricing(row.pricing) : null }
+  }
+
+  async savePricing(
+    vendorId: string,
+    id: string,
+    { matrix, vat }: PlacementPricing,
+  ): Promise<SavePricingResult> {
+    const row = await this.prisma.placement.findFirst({
+      where: { id, vendorId },
+      select: { status: true },
+    })
+    if (!row) return { kind: 'not_found' }
+    if (row.status === 'ARCHIVED') return { kind: 'conflict', status: row.status }
+    const data = {
+      terms: matrix.terms,
+      durations: matrix.durations,
+      prices: matrix.prices,
+      vatEnabled: vat.vatEnabled,
+      vatRate: vat.vatRate,
+    }
+    const saved = await this.prisma.placementPricing.upsert({
+      where: { placementId: id },
+      create: { placementId: id, ...data },
+      update: data,
+    })
+    return { kind: 'ok', pricing: toPlacementPricing(saved) }
   }
 
   /** Zero rows updated means the conditional `where` failed: a 409 or a 404 to the caller. */

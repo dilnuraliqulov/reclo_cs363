@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ListingForm } from '@/components/vendor/ListingForm'
+import { PricingCard } from '@/components/vendor/PricingCard'
 import { ListingStatusBanner } from '@/components/vendor/ListingStatusBanner'
 import { VendorPageHeader } from '@/components/vendor/VendorPageHeader'
 import { Button } from '@/components/ui/button'
@@ -88,24 +89,31 @@ export function ListingEditorPage() {
             </Button>
           </div>
         ) : (
-          <ListingForm
-            // A new listing becomes an edit of itself after the first save: start the form afresh.
-            key={placement?.id ?? 'new'}
-            placement={placement}
-            onPlacementChange={setPlacement}
-            onPhotosSettled={() =>
-              queryClient.invalidateQueries({ queryKey: ['vendor-placement', id] })
-            }
-            banner={
-              placement && (
-                <ListingStatusBanner
-                  placement={placement}
-                  onRestore={() => restore.mutate()}
-                  isRestoring={restore.isPending}
-                />
-              )
-            }
-          />
+          <>
+            <ListingForm
+              // A new listing becomes an edit of itself after the first save: start the form afresh.
+              key={placement?.id ?? 'new'}
+              placement={placement}
+              onPlacementChange={setPlacement}
+              onPhotosSettled={() =>
+                queryClient.invalidateQueries({ queryKey: ['vendor-placement', id] })
+              }
+              banner={
+                placement && (
+                  <ListingStatusBanner
+                    placement={placement}
+                    onRestore={() => restore.mutate()}
+                    isRestoring={restore.isPending}
+                  />
+                )
+              }
+            />
+            {placement && (
+              <div className="pb-24">
+                <PricingCard placement={placement} />
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

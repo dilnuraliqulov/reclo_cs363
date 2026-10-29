@@ -6,6 +6,7 @@ export * from './health'
 export * from './inquiry'
 export * from './locale'
 export * from './placement'
+export * from './pricing'
 export * from './moderation'
 
 export * from './vendor'
