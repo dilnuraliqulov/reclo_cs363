@@ -17,6 +17,14 @@ describe('formatPrice', () => {
   it('formats zero without a suffix change', () => {
     expect(formatPrice(0)).toMatch(/^0\s?UZS$/)
   })
+
+  it('takes no locale: a price is one currency in one country', () => {
+    // Deliberate, and the reason this module stayed out of the i18n work (KAN-79): the amount is a
+    // sum a vendor quoted in UZS, so it reads the same to an Uzbek, Russian or English reader.
+    // Grouping follows `uz-UZ` whatever the UI language is.
+    expect(formatPrice).toHaveLength(1)
+    expect(formatPrice(5_000_000)).toBe(new Intl.NumberFormat('uz-UZ').format(5_000_000) + ' UZS')
+  })
 })
 
 describe('formatCompactPrice', () => {
@@ -57,13 +65,11 @@ describe('formatPlacementType', () => {
   it('maps every enum member to a human label', () => {
     expect(formatPlacementType('BILLBOARD')).toBe('Billboard')
     expect(formatPlacementType('LED_SCREEN')).toBe('LED Screen')
-    expect(formatPlacementType('WALL_MURAL')).toBe('Wall Mural')
-    expect(formatPlacementType('CITY_FORMAT')).toBe('City Format')
   })
 })
 
 describe('getPlacementTypeColor', () => {
-  const types: PlacementType[] = ['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT']
+  const types: PlacementType[] = ['BILLBOARD', 'LED_SCREEN']
 
   it('returns badge, text and dot classes for every type', () => {
     for (const type of types) {

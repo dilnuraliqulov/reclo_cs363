@@ -42,6 +42,19 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
     findMany.mockResolvedValue([row])
   })
 
+  it('filters by LED attributes when requested', async () => {
+    await createStore().findMapMarkers({
+      ...bounds,
+      type: 'LED_SCREEN',
+      ledDurationSeconds: 15,
+      ledPlaysPerDay: 120,
+    })
+
+    expect(lastWhere().type).toBe('LED_SCREEN')
+    expect(lastWhere().ledDurationSeconds).toBe(15)
+    expect(lastWhere().ledPlaysPerDay).toBe(120)
+  })
+
   it('only returns ACTIVE placements to the public map', async () => {
     await createStore().findMapMarkers(bounds)
 
@@ -59,6 +72,8 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
         width: 6,
         height: 3,
         lighting: true,
+        ledDurationSeconds: null,
+        ledPlaysPerDay: null,
         vendorId: 'vendor-123',
         createdAt: new Date('2026-10-10T10:00:00.000Z'),
         updatedAt: new Date('2026-10-12T15:00:00.000Z'),
@@ -98,6 +113,8 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
         photos: row.photos,
         tier: 'SILVER',
         vendorId: 'vendor-123',
+        ledDurationSeconds: null,
+        ledPlaysPerDay: null,
       })
       expect(detail?.createdAt).toBe('2026-10-10T10:00:00.000Z')
       expect(detail?.updatedAt).toBe('2026-10-12T15:00:00.000Z')
@@ -111,6 +128,8 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
         width: null,
         height: null,
         lighting: false,
+        ledDurationSeconds: null,
+        ledPlaysPerDay: null,
         vendorId: 'vendor-123',
         createdAt: new Date('2026-10-10T10:00:00.000Z'),
         updatedAt: new Date('2026-10-12T15:00:00.000Z'),
@@ -131,6 +150,8 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
         width: null,
         height: null,
         lighting: false,
+        ledDurationSeconds: null,
+        ledPlaysPerDay: null,
         vendorId: 'vendor-123',
         createdAt: new Date('2026-10-10T10:00:00.000Z'),
         updatedAt: new Date('2026-10-12T15:00:00.000Z'),
@@ -148,6 +169,8 @@ describe('PrismaPlacementStore.findMapMarkers', () => {
         width: null,
         height: null,
         lighting: false,
+        ledDurationSeconds: null,
+        ledPlaysPerDay: null,
         vendorId: 'vendor-123',
         createdAt: new Date('2026-10-10T10:00:00.000Z'),
         updatedAt: new Date('2026-10-12T15:00:00.000Z'),

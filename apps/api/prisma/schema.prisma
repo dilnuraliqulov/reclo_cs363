@@ -46,8 +46,6 @@ model Session {
 enum PlacementType {
   BILLBOARD
   LED_SCREEN
-  WALL_MURAL
-  CITY_FORMAT
 }
 
 enum PlacementStatus {
@@ -71,6 +69,8 @@ model Placement {
   width         Float?          // Width in meters
   height        Float?          // Height in meters
   lighting      Boolean         @default(false)
+  ledDurationSeconds Int?
+  ledPlaysPerDay    Int?
   photos        String[]        @default([])
   archivedAt    DateTime?       // set when status becomes ARCHIVED, cleared on restore
   vendorId      String

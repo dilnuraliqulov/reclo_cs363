@@ -41,6 +41,8 @@ export function PlacementsDiscoveryPage() {
     city: '',
     minPrice: '',
     maxPrice: '',
+    ledDurationSeconds: '',
+    ledPlaysPerDay: '',
   })
 
   // Selected marker (active in list & highlighted on map)
@@ -65,7 +67,9 @@ export function PlacementsDiscoveryPage() {
     filters.type ||
     filters.city.trim() !== '' ||
     filters.minPrice.trim() !== '' ||
-    filters.maxPrice.trim() !== '',
+    filters.maxPrice.trim() !== '' ||
+    filters.ledDurationSeconds.trim() !== '' ||
+    filters.ledPlaysPerDay.trim() !== '',
   )
 
   const handleResetFilters = () => {
@@ -74,6 +78,8 @@ export function PlacementsDiscoveryPage() {
       city: '',
       minPrice: '',
       maxPrice: '',
+      ledDurationSeconds: '',
+      ledPlaysPerDay: '',
     })
   }
 
@@ -97,6 +103,18 @@ export function PlacementsDiscoveryPage() {
     if (filters.maxPrice.trim()) {
       const max = parseInt(filters.maxPrice, 10)
       if (!isNaN(max) && max > 0) query.maxPrice = max
+    }
+    if (filters.type === 'LED_SCREEN' && filters.ledDurationSeconds.trim()) {
+      const ledDurationSeconds = parseInt(filters.ledDurationSeconds, 10)
+      if (!isNaN(ledDurationSeconds) && ledDurationSeconds > 0) {
+        query.ledDurationSeconds = ledDurationSeconds
+      }
+    }
+    if (filters.type === 'LED_SCREEN' && filters.ledPlaysPerDay.trim()) {
+      const ledPlaysPerDay = parseInt(filters.ledPlaysPerDay, 10)
+      if (!isNaN(ledPlaysPerDay) && ledPlaysPerDay > 0) {
+        query.ledPlaysPerDay = ledPlaysPerDay
+      }
     }
 
     return query

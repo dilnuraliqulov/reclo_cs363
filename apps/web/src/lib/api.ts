@@ -97,6 +97,12 @@ export async function fetchPlacementMarkers(params: MapBoundsQuery): Promise<Map
   if (params.city) searchParams.set('city', params.city)
   if (params.minPrice !== undefined) searchParams.set('minPrice', params.minPrice.toString())
   if (params.maxPrice !== undefined) searchParams.set('maxPrice', params.maxPrice.toString())
+  if (params.ledDurationSeconds !== undefined) {
+    searchParams.set('ledDurationSeconds', params.ledDurationSeconds.toString())
+  }
+  if (params.ledPlaysPerDay !== undefined) {
+    searchParams.set('ledPlaysPerDay', params.ledPlaysPerDay.toString())
+  }
 
   const response = await fetch(`${API_URL}/api/placements/map?${searchParams.toString()}`)
   if (!response.ok) {

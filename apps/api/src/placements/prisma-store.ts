@@ -12,7 +12,18 @@ export class PrismaPlacementStore implements PlacementStore {
   ) {}
 
   async findMapMarkers(query: MapBoundsQuery): Promise<PlacementMarker[]> {
-    const { minLat, maxLat, minLng, maxLng, type, city, minPrice, maxPrice } = query
+    const {
+      minLat,
+      maxLat,
+      minLng,
+      maxLng,
+      type,
+      city,
+      minPrice,
+      maxPrice,
+      ledDurationSeconds,
+      ledPlaysPerDay,
+    } = query
 
     const placements = await this.prisma.placement.findMany({
       where: {
@@ -35,6 +46,8 @@ export class PrismaPlacementStore implements PlacementStore {
               },
             }
           : {}),
+        ...(ledDurationSeconds !== undefined ? { ledDurationSeconds } : {}),
+        ...(ledPlaysPerDay !== undefined ? { ledPlaysPerDay } : {}),
       },
       select: {
         id: true,
@@ -87,6 +100,8 @@ export class PrismaPlacementStore implements PlacementStore {
         width: true,
         height: true,
         lighting: true,
+        ledDurationSeconds: true,
+        ledPlaysPerDay: true,
         photos: true,
         vendorId: true,
         createdAt: true,
@@ -117,6 +132,8 @@ export class PrismaPlacementStore implements PlacementStore {
       height: placement.height,
       lighting: placement.lighting,
       photos: placement.photos.map((photo) => publicPhotoUrl(photo, this.publicUrl)),
+      ledDurationSeconds: placement.ledDurationSeconds,
+      ledPlaysPerDay: placement.ledPlaysPerDay,
       vendorId: placement.vendorId,
       createdAt: placement.createdAt.toISOString(),
       updatedAt: placement.updatedAt.toISOString(),
