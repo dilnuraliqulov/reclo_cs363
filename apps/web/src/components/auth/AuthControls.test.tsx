@@ -70,3 +70,21 @@ describe('AuthControls inquiry history link', () => {
     expect(screen.queryByRole('link', { name: 'My inquiries' })).not.toBeInTheDocument()
   })
 })
+
+describe('AuthControls admin vendors link', () => {
+  it('offers an admin the way to the vendor accounts screen', async () => {
+    stubSession('ADMIN')
+    renderControls()
+
+    const link = await screen.findByRole('link', { name: 'Vendors' })
+    expect(link).toHaveAttribute('href', '/admin/vendors')
+  })
+
+  it.each(['CLIENT', 'VENDOR'] as const)('does not offer it to a %s', async (role) => {
+    stubSession(role)
+    renderControls()
+
+    await screen.findByRole('button', { name: 'Sign out' })
+    expect(screen.queryByRole('link', { name: 'Vendors' })).not.toBeInTheDocument()
+  })
+})

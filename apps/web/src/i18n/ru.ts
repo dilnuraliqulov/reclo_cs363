@@ -18,6 +18,7 @@ export const ru = {
   'auth.signOutFailed': 'Не удалось выйти. Попробуйте снова.',
   'auth.signedInAs': 'Вы вошли как',
   'auth.myInquiries': 'Мои заявки',
+  'auth.adminVendors': 'Вендоры',
 
   'common.email': 'Эл. почта',
   'common.password': 'Пароль',

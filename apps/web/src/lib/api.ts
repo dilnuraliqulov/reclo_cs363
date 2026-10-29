@@ -1,13 +1,16 @@
 import {
   apiErrorSchema,
   authResponseSchema,
+  createVendorResponseSchema,
   healthResponseSchema,
   inquiryHistoryResponseSchema,
   inquiryResponseSchema,
   mapMarkersResponseSchema,
   placementDetailSchema,
+  vendorListResponseSchema,
   type ApiError,
   type CreateInquiryRequest,
+  type CreateVendorRequest,
   type ErrorCode,
   type HealthResponse,
   type Inquiry,
@@ -19,6 +22,7 @@ import {
   type PlacementDetail,
   type PublicUser,
   type RegisterRequest,
+  type VendorSummary,
 } from '@reclo/shared'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
@@ -169,4 +173,16 @@ export async function fetchMe(): Promise<PublicUser | null> {
     if (error instanceof ApiRequestError && error.status === 401) return null
     throw error
   }
+}
+
+/** Admin only: creates a vendor account. The admin stays signed in as themselves. */
+export async function createVendor(input: CreateVendorRequest): Promise<VendorSummary> {
+  const response = await request('/api/admin/vendors', { method: 'POST', body: input })
+  return createVendorResponseSchema.parse(await response.json()).vendor
+}
+
+/** Admin only: vendor accounts, newest first. */
+export async function fetchVendors(): Promise<VendorSummary[]> {
+  const response = await request('/api/admin/vendors', { method: 'GET' })
+  return vendorListResponseSchema.parse(await response.json()).vendors
 }

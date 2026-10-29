@@ -18,6 +18,7 @@ export const uz = {
   'auth.signOutFailed': "Chiqish amalga oshmadi. Qaytadan urinib ko'ring.",
   'auth.signedInAs': 'Hisob:',
   'auth.myInquiries': "Mening so'rovlarim",
+  'auth.adminVendors': 'Vendorlar',
 
   'common.email': 'Email',
   'common.password': 'Parol',

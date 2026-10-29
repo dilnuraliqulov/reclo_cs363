@@ -19,6 +19,7 @@ export const en = {
   'auth.signOutFailed': 'Could not sign out. Please try again.',
   'auth.signedInAs': 'Signed in as',
   'auth.myInquiries': 'My inquiries',
+  'auth.adminVendors': 'Vendors',
 
   'common.email': 'Email',
   'common.password': 'Password',
