@@ -158,6 +158,8 @@ export const createPlacementRequestSchema = placementFieldsSchema.refine(
   { message: VALIDATION_CODES.ledTypeOnly, path: ['type'] },
 )
 export type CreatePlacementRequest = z.infer<typeof createPlacementRequestSchema>
+/** What the editor form holds before validation: price and size are coerced from text. */
+export type CreatePlacementFormValues = z.input<typeof createPlacementRequestSchema>
 
 // `lighting` has a default on create; a partial of it would re-apply `false` to an edit that never
 // mentioned it, so the default is dropped here.
