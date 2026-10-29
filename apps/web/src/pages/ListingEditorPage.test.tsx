@@ -706,3 +706,83 @@ describe('ListingEditorPage: edit', () => {
     })
   })
 })
+
+describe('ListingEditorPage: form-level failures (KAN-82)', () => {
+  async function submitValid() {
+    renderApp('/vendor/placements/new')
+    const user = userEvent.setup()
+    await screen.findByLabelText('Title')
+    await fillValidForm(user)
+    await user.click(screen.getByRole('button', { name: 'Create listing' }))
+  }
+
+  it.each([
+    [429, 'RATE_LIMITED', 'Too many attempts, try again later'],
+    [500, 'INTERNAL', 'Something went wrong'],
+  ] as const)(
+    'shows one form message for a %i, and keeps the typed values',
+    async (status, code, text) => {
+      stubVendorApi('VENDOR', (call) =>
+        call.method === 'POST'
+          ? json(status, { error: 'English from the server', code })
+          : undefined,
+      )
+
+      await submitValid()
+
+      const alert = await screen.findByTestId('form-error')
+      expect(alert).toHaveTextContent(text)
+      expect(alert).not.toHaveTextContent('English from the server')
+      expect(screen.getByLabelText('Title')).toHaveValue('Amir Temur avenue LED')
+      expect(screen.getByRole('button', { name: 'Create listing' })).toBeEnabled()
+    },
+  )
+
+  it('shows a localized form message when the network is down', async () => {
+    stubVendorApi('VENDOR', (call) => {
+      if (call.method === 'POST') throw new TypeError('Failed to fetch')
+      return undefined
+    })
+
+    await submitValid()
+
+    expect(await screen.findByTestId('form-error')).toHaveTextContent('Cannot reach the server')
+  })
+
+  it('puts an empty-update _form code in the form message', async () => {
+    stubVendorApi('VENDOR', (call) =>
+      call.method === 'POST'
+        ? json(400, {
+            error: 'Invalid input',
+            code: 'INVALID_INPUT',
+            fieldErrors: { _form: ['validation.update.empty'] },
+          })
+        : undefined,
+    )
+
+    await submitValid()
+
+    expect(await screen.findByTestId('form-error')).toHaveTextContent('Nothing to update')
+  })
+
+  it('ties a server field error to its input with aria-describedby', async () => {
+    stubVendorApi('VENDOR', (call) =>
+      call.method === 'POST'
+        ? json(400, {
+            error: 'Invalid input',
+            code: 'INVALID_INPUT',
+            fieldErrors: { city: ['validation.city.length'] },
+          })
+        : undefined,
+    )
+
+    await submitValid()
+
+    const city = screen.getByLabelText('City')
+    await waitFor(() => expect(city).toHaveAttribute('aria-invalid', 'true'))
+    expect(document.getElementById(city.getAttribute('aria-describedby')!)).toHaveTextContent(
+      'City must be 2 to 80 characters',
+    )
+    expect(screen.queryByTestId('form-error')).not.toBeInTheDocument()
+  })
+})

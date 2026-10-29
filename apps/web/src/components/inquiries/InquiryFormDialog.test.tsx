@@ -296,3 +296,90 @@ describe('InquiryFormDialog', () => {
     expect(await screen.findByText('Message must be at least 10 characters')).toBeInTheDocument()
   })
 })
+
+describe('InquiryFormDialog: validation and server failures', () => {
+  async function fillValid(user: ReturnType<typeof setupUser>) {
+    await user.type(await screen.findByLabelText('Your name'), 'Aziza Karimova')
+    await user.type(screen.getByLabelText('Phone'), '+998901234567')
+    await user.type(screen.getByLabelText('Message'), 'We would like a two-month campaign here.')
+  }
+
+  it('ties each client-side message to its input with aria-describedby', async () => {
+    const user = setupUser()
+    stubApi()
+    renderDialog()
+
+    await user.click(await screen.findByRole('button', { name: 'Send inquiry' }))
+
+    const name = await screen.findByLabelText('Your name')
+    await waitFor(() => expect(name).toHaveAttribute('aria-invalid', 'true'))
+    const message = document.getElementById(name.getAttribute('aria-describedby')!)
+    expect(message).toHaveTextContent('Enter your name')
+    expect(message).toHaveAttribute('role', 'alert')
+  })
+
+  it.each([
+    [429, 'RATE_LIMITED', 'Too many attempts, try again later'],
+    [500, 'INTERNAL', 'Something went wrong'],
+  ] as const)(
+    'shows one form message for a %i and re-enables submit',
+    async (status, code, text) => {
+      const user = setupUser()
+      stubApi({ onPost: () => json(status, { error: 'English from the server', code }) })
+      renderDialog()
+      await fillValid(user)
+
+      await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+      const alert = await screen.findByTestId('form-error')
+      expect(alert).toHaveTextContent(text)
+      expect(alert).not.toHaveTextContent('English from the server')
+      expect(screen.getByRole('button', { name: 'Send inquiry' })).toBeEnabled()
+    },
+  )
+
+  it('shows a form message when the network is down', async () => {
+    const user = setupUser()
+    stubApi({
+      onPost: () => {
+        throw new TypeError('Failed to fetch')
+      },
+    })
+    renderDialog()
+    await fillValid(user)
+
+    await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+    expect(await screen.findByTestId('form-error')).toHaveTextContent('Cannot reach the server')
+  })
+
+  it('reports an error for a field it does not have as a form message, not nothing', async () => {
+    const user = setupUser()
+    stubApi({
+      onPost: () =>
+        json(400, {
+          error: 'Invalid input',
+          code: 'INVALID_INPUT',
+          fieldErrors: { _form: ['validation.invalid'] },
+        }),
+    })
+    renderDialog()
+    await fillValid(user)
+
+    await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+    expect(await screen.findByTestId('form-error')).toHaveTextContent('This value is not valid')
+  })
+
+  it('disables the fields and the button while the request runs', async () => {
+    const user = setupUser()
+    stubApi({ onPost: () => new Promise<Response>(() => {}) })
+    renderDialog()
+    await fillValid(user)
+
+    await user.click(screen.getByRole('button', { name: 'Send inquiry' }))
+
+    expect(await screen.findByRole('button', { name: 'Sending…' })).toBeDisabled()
+    expect(screen.getByLabelText('Message')).toBeDisabled()
+  })
+})
