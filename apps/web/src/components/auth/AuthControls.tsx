@@ -37,6 +37,9 @@ export function AuthControls() {
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
               <Link to="/admin/vendors">{t('auth.adminVendors')}</Link>
             </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+              <Link to="/admin/inquiries">{t('auth.adminInquiries')}</Link>
+            </Button>
           </>
         )}
         <span className="hidden text-xs sm:inline">
