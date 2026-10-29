@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input'
 import { formatPlacementType } from '@/lib/placements'
 import { cn } from '@/lib/utils'
 
-const PLACEMENT_TYPES: PlacementType[] = ['BILLBOARD', 'LED_SCREEN', 'WALL_MURAL', 'CITY_FORMAT']
+const PLACEMENT_TYPES: PlacementType[] = ['BILLBOARD', 'LED_SCREEN']
 
 export interface PlacementFilterState {
   type?: PlacementType
   city: string
   minPrice: string
   maxPrice: string
+  ledDurationSeconds: string
+  ledPlaysPerDay: string
 }
 
 interface PlacementFiltersProps {
@@ -42,7 +44,14 @@ export function PlacementFilters({
               'h-7 text-xs px-2.5 rounded-full',
               filters.type === undefined ? 'shadow-xs' : 'bg-background hover:bg-muted',
             )}
-            onClick={() => onChange((prev) => ({ ...prev, type: undefined }))}
+            onClick={() =>
+              onChange((prev) => ({
+                ...prev,
+                type: undefined,
+                ledDurationSeconds: '',
+                ledPlaysPerDay: '',
+              }))
+            }
           >
             All Types
           </Button>
@@ -58,10 +67,16 @@ export function PlacementFilters({
                   isSelected ? 'shadow-xs' : 'bg-background hover:bg-muted',
                 )}
                 onClick={() =>
-                  onChange((prev) => ({
-                    ...prev,
-                    type: isSelected ? undefined : type,
-                  }))
+                  onChange((prev) => {
+                    const nextType = isSelected ? undefined : type
+                    return {
+                      ...prev,
+                      type: nextType,
+                      ...(nextType === 'LED_SCREEN'
+                        ? {}
+                        : { ledDurationSeconds: '', ledPlaysPerDay: '' }),
+                    }
+                  })
                 }
               >
                 {formatPlacementType(type)}
@@ -105,6 +120,27 @@ export function PlacementFilters({
           />
         </div>
       </div>
+
+      {filters.type === 'LED_SCREEN' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Input
+            type="number"
+            placeholder="LED duration (sec)"
+            value={filters.ledDurationSeconds}
+            onChange={(e) => onChange((prev) => ({ ...prev, ledDurationSeconds: e.target.value }))}
+            className="h-8 text-xs bg-background"
+            min={1}
+          />
+          <Input
+            type="number"
+            placeholder="LED plays/day"
+            value={filters.ledPlaysPerDay}
+            onChange={(e) => onChange((prev) => ({ ...prev, ledPlaysPerDay: e.target.value }))}
+            className="h-8 text-xs bg-background"
+            min={1}
+          />
+        </div>
+      )}
 
       {/* Reset Bar */}
       {hasActiveFilters && (

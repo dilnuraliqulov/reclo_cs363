@@ -30,6 +30,8 @@ const validDetail = {
   height: 3,
   lighting: true,
   photos: ['https://example.com/photo.jpg', 'https://example.com/photo-2.jpg'],
+  ledDurationSeconds: null,
+  ledPlaysPerDay: null,
   vendorId: 'vendor-123',
   createdAt: '2026-10-10T10:00:00.000Z',
   updatedAt: '2026-10-12T15:00:00.000Z',
@@ -139,6 +141,8 @@ describe('fetchPlacementMarkers', () => {
       city: 'Tashkent',
       minPrice: 1_000_000,
       maxPrice: 9_000_000,
+      ledDurationSeconds: 15,
+      ledPlaysPerDay: 120,
     })
 
     const url = requestedUrl()
@@ -146,6 +150,8 @@ describe('fetchPlacementMarkers', () => {
     expect(url.searchParams.get('city')).toBe('Tashkent')
     expect(url.searchParams.get('minPrice')).toBe('1000000')
     expect(url.searchParams.get('maxPrice')).toBe('9000000')
+    expect(url.searchParams.get('ledDurationSeconds')).toBe('15')
+    expect(url.searchParams.get('ledPlaysPerDay')).toBe('120')
   })
 
   it('sends a zero minPrice rather than dropping it', async () => {

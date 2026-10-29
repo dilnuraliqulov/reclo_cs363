@@ -46,8 +46,6 @@ model Session {
 enum PlacementType {
   BILLBOARD
   LED_SCREEN
-  WALL_MURAL
-  CITY_FORMAT
 }
 
 enum PlacementStatus {
@@ -71,14 +69,17 @@ model Placement {
   width         Float?          // Width in meters
   height        Float?          // Height in meters
   lighting      Boolean         @default(false)
+  ledDurationSeconds Int?
+  ledPlaysPerDay    Int?
   photos        String[]        @default([])
+  archivedAt    DateTime?       // set when status becomes ARCHIVED, cleared on restore
   vendorId      String
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   inquiries     Inquiry[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  @@index([vendorId])
+  @@index([vendorId, status]) // vendor "My listings" list and status filter
   @@index([status])
   @@index([city])
   @@index([latitude, longitude])

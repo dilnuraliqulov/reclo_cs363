@@ -52,10 +52,10 @@ setup steps are in `README.md`.
 
 Project key: `KAN`.
 
-Current task: **KAN-19 "Client-facing UI supports Uzbek and Russian"**. Do its subtasks in this
+Current task: **KAN-10 "Vendors create and manage listings"**. Do its subtasks in this
 order:
 
-1. KAN-76 Design
-2. KAN-77 Backend
-3. KAN-78 Frontend
-4. KAN-79 Testing
+1. KAN-42 Design
+2. KAN-43 Backend
+3. KAN-44 Frontend
+4. KAN-45 Testing

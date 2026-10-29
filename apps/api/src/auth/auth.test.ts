@@ -1,3 +1,4 @@
+import { VALIDATION_CODES } from '@reclo/shared'
 import { Router } from 'express'
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -83,7 +84,7 @@ describe('POST /api/auth/register', () => {
       .send({ email: 'user@example.com', password: 'short' })
 
     expect(response.status).toBe(400)
-    expect(response.body.fieldErrors.password[0]).toMatch(/at least 8/)
+    expect(response.body.fieldErrors.password[0]).toBe(VALIDATION_CODES.passwordTooShort)
     expect(users).toHaveLength(0)
   })
 
@@ -151,7 +152,10 @@ describe('POST /api/auth/login', () => {
 
     expect(wrongPassword.status).toBe(401)
     expect(unknownEmail.status).toBe(401)
-    expect(wrongPassword.body).toEqual({ error: 'Invalid email or password' })
+    expect(wrongPassword.body).toEqual({
+      error: 'Invalid email or password',
+      code: 'INVALID_CREDENTIALS',
+    })
     expect(unknownEmail.body).toEqual(wrongPassword.body)
     expect(wrongPassword.headers['set-cookie']).toBeUndefined()
     expect(unknownEmail.headers['set-cookie']).toBeUndefined()
@@ -183,7 +187,7 @@ describe('GET /api/auth/me', () => {
     const response = await request(app).get('/api/auth/me')
 
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Not authenticated' })
+    expect(response.body).toEqual({ error: 'Not authenticated', code: 'NOT_AUTHENTICATED' })
   })
 
   it('returns 401 for an unknown token', async () => {
@@ -275,7 +279,7 @@ describe('requireRole', () => {
 
     const forbidden = await request(app).get('/test/admin-only').set('Cookie', cookie)
     expect(forbidden.status).toBe(403)
-    expect(forbidden.body).toEqual({ error: 'Forbidden' })
+    expect(forbidden.body).toEqual({ error: 'Forbidden', code: 'FORBIDDEN' })
 
     setRole(credentials.email, 'ADMIN')
     const allowed = await request(app).get('/test/admin-only').set('Cookie', cookie)

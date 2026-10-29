@@ -61,7 +61,8 @@ Not translated:
 - **Plural categories, not a singular/plural pair.** Russian has three for counted nouns — 1 месяц,
   3 месяца, 5 месяцев — and the existing `durationMonths === 1 ? copy.month : copy.months` cannot
   express it. A counted entry is therefore an object keyed by `Intl.PluralRules` category, not a
-  string. Uzbek needs only `other`; English and Uzbek entries stay one line each.
+  string. CLDR gives Uzbek and English two categories each (`one`, `other`), and Uzbek fills both
+  with the same words because the noun does not inflect after a numeral.
 - **The server returns codes; the client owns the words.** Localizing on the server means the API
   guesses the reader's language from a header, and means the same failure reads differently in a log
   and on screen. Instead each error response gains a stable `code`, and the web maps the code to
@@ -123,8 +124,10 @@ Node:
 | 5   | other | many | other |
 | 21  | other | one  | other |
 
-So Russian needs `one`, `few` and `many`; `21 месяц` taking the same form as `1 месяц` is exactly the
-case a hand-written `n === 1` check gets wrong. The only counted nouns in the UI today are campaign
+So Russian needs `one`, `few` and `many`, plus `other` for fractions such as 1.5; `21 месяц` taking
+the same form as `1 месяц` is exactly the case a hand-written `n === 1` check gets wrong. Because
+`other` exists in every locale, it is also the safe fallback when a number lands in a category the
+catalog does not list. The only counted nouns in the UI today are campaign
 duration in months (the inquiry dialog and the history row) and the filter bar's applied-filter
 count, but the mechanism has to exist before the first Russian string is written.
 
@@ -177,7 +180,8 @@ behaviour that a hand-rolled menu would not.
   re-renders and React swaps the strings.
 
 Both `InquiryHistoryPage` and `PlacementsDiscoveryPage` carry their own hand-written header, so the
-switcher is placed twice. That duplication predates this task and is left alone here; pulling the two
+switcher is placed twice. The sign-in and sign-up pages have no header at all, so it sits at their
+top right: a visitor who cannot read the form has to be able to switch before signing in. That duplication predates this task and is left alone here; pulling the two
 headers into one component is a worthwhile cleanup but not one to bundle into a translation change.
 
 ## API changes (KAN-77)
@@ -203,6 +207,7 @@ the API map to codes one for one:
 | `NOT_AUTHENTICATED`      | Not authenticated                                   |
 | `FORBIDDEN`              | Forbidden                                           |
 | `INVALID_CREDENTIALS`    | Invalid email or password                           |
+| `EMAIL_TAKEN`            | Email is already registered                         |
 | `INVALID_INPUT`          | Invalid input                                       |
 | `INVALID_QUERY`          | Invalid query parameters                            |
 | `MALFORMED_JSON`         | Malformed JSON                                      |
@@ -215,7 +220,9 @@ the API map to codes one for one:
 | `INTERNAL`               | Something went wrong                                |
 
 `errorCodeSchema` is a shared Zod enum, so the web's `error.*` catalog keys and the API's codes
-cannot drift apart without a type error. `ApiRequestError` already carries the parsed body, so it
+cannot drift apart without a type error. Field-level codes live in the separate `validation.*`
+namespace and are listed in `VALIDATION_CODES`, because a field error and a whole-response error are
+shown in different places; `validation.email.taken` is the field counterpart of `EMAIL_TAKEN`. `ApiRequestError` already carries the parsed body, so it
 gains a `code` field and the call sites that currently show `error.message` show `t(...)` instead.
 
 ### Validation messages
@@ -284,6 +291,9 @@ The screens split cleanly into work that is safe now and work that is not:
    JSX line that holds text, which is the worst possible diff to put under someone else's open
    branch. **KAN-78 should do groups 1 and 2, and take group 3 only after KAN-10 and KAN-12 land**;
    if they have not landed, group 3 moves to a follow-up subtask rather than blocking the rest.
+   The switcher itself is still placed in that page's header in group 2, as a one-line insertion:
+   leaving the app's main page with no way to change language would be worse than leaving some of
+   its own strings in English for a while.
 
 KAN-77 (error codes) is independent of all three and can go first or last; the web falls back to the
 English `error` string until it lands, so neither side waits on the other.
@@ -310,6 +320,13 @@ English `error` string until it lands, so neither side waits on the other.
 - Formatters: the same date and price through all three locales, matching the table above.
 - Error codes end to end: a route returning `DUPLICATE_INQUIRY` renders the Russian sentence, and an
   unknown code falls back to the response's `error` string rather than rendering the code.
+
+**What KAN-79 found.** The last item above did not hold. `apiErrorSchema` validated `code` against
+the enum, so a code from a newer API failed the whole body and the client threw away the server's
+`error` sentence along with it, showing a generic apology instead. `code` is now
+`errorCodeSchema.optional().catch(undefined)`: an unrecognised code falls away, the sentence
+survives, and the reader gets English rather than nothing. This is the only production change in a
+testing subtask, and it is here because a test asked for the behaviour the design had promised.
 
 ## Open questions
 
