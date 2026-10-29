@@ -1,4 +1,6 @@
 import {
+  adminPlacementListResponseSchema,
+  adminPlacementResponseSchema,
   apiErrorSchema,
   authResponseSchema,
   healthResponseSchema,
@@ -6,7 +8,11 @@ import {
   inquiryResponseSchema,
   mapMarkersResponseSchema,
   placementDetailSchema,
+  type AdminPlacementDetail,
+  type AdminPlacementListQuery,
+  type AdminPlacementListResponse,
   type ApiError,
+  type ApprovePlacementRequest,
   type CreateInquiryRequest,
   type ErrorCode,
   type HealthResponse,
@@ -19,6 +25,7 @@ import {
   type PlacementDetail,
   type PublicUser,
   type RegisterRequest,
+  type RejectPlacementRequest,
 } from '@reclo/shared'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
@@ -47,14 +54,25 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request(path: string, init: { method: string; body?: unknown }): Promise<Response> {
+/** `body` is sent as JSON, unless it is a FormData: then the browser sets the multipart boundary. */
+export async function request(
+  path: string,
+  init: { method: string; body?: unknown },
+): Promise<Response> {
+  const isForm = init.body instanceof FormData
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       method: init.method,
       credentials: 'include',
-      headers: init.body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      headers:
+        init.body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
+      body:
+        init.body === undefined
+          ? undefined
+          : isForm
+            ? (init.body as FormData)
+            : JSON.stringify(init.body),
     })
   } catch {
     throw new ApiRequestError(0, 'Cannot reach the server. Check your connection and try again.')
@@ -169,4 +187,49 @@ export async function fetchMe(): Promise<PublicUser | null> {
     if (error instanceof ApiRequestError && error.status === 401) return null
     throw error
   }
+}
+
+/** One page of the moderation queue (or any other status, to look a listing up). */
+export async function fetchAdminPlacements(
+  params: Partial<AdminPlacementListQuery> = {},
+): Promise<AdminPlacementListResponse> {
+  const searchParams = new URLSearchParams()
+  if (params.status) searchParams.set('status', params.status)
+  if (params.type) searchParams.set('type', params.type)
+  if (params.city) searchParams.set('city', params.city)
+  if (params.page !== undefined) searchParams.set('page', params.page.toString())
+  if (params.pageSize !== undefined) searchParams.set('pageSize', params.pageSize.toString())
+
+  const query = searchParams.toString()
+  const response = await request(`/api/admin/placements${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  })
+  return adminPlacementListResponseSchema.parse(await response.json())
+}
+
+export async function fetchAdminPlacement(id: string): Promise<AdminPlacementDetail> {
+  const response = await request(`/api/admin/placements/${id}`, { method: 'GET' })
+  return adminPlacementResponseSchema.parse(await response.json()).placement
+}
+
+export async function approvePlacement(
+  id: string,
+  input: ApprovePlacementRequest,
+): Promise<AdminPlacementDetail> {
+  const response = await request(`/api/admin/placements/${id}/approve`, {
+    method: 'POST',
+    body: input,
+  })
+  return adminPlacementResponseSchema.parse(await response.json()).placement
+}
+
+export async function rejectPlacement(
+  id: string,
+  input: RejectPlacementRequest,
+): Promise<AdminPlacementDetail> {
+  const response = await request(`/api/admin/placements/${id}/reject`, {
+    method: 'POST',
+    body: input,
+  })
+  return adminPlacementResponseSchema.parse(await response.json()).placement
 }

@@ -57,19 +57,33 @@ to `reclo`. These are local development credentials only.
 
 Run these from the repository root.
 
-| Command            | What it does                                               |
-| ------------------ | ---------------------------------------------------------- |
-| `pnpm dev`         | Runs the web app and the API together, with reload         |
-| `pnpm build`       | Builds every package                                       |
-| `pnpm lint`        | Runs ESLint and checks formatting with Prettier            |
-| `pnpm format`      | Formats all files with Prettier                            |
-| `pnpm typecheck`   | Type-checks every package                                  |
-| `pnpm test`        | Runs the Vitest suites in web and api                      |
-| `pnpm db:up`       | Starts the Docker PostgreSQL and waits until it is healthy |
-| `pnpm db:down`     | Stops the Docker PostgreSQL (data is kept)                 |
-| `pnpm db:migrate`  | Creates and applies Prisma migrations                      |
-| `pnpm db:generate` | Regenerates the Prisma client                              |
-| `pnpm db:studio`   | Opens Prisma Studio                                        |
+| Command              | What it does                                               |
+| -------------------- | ---------------------------------------------------------- |
+| `pnpm dev`           | Runs the web app and the API together, with reload         |
+| `pnpm build`         | Builds every package                                       |
+| `pnpm lint`          | Runs ESLint and checks formatting with Prettier            |
+| `pnpm format`        | Formats all files with Prettier                            |
+| `pnpm typecheck`     | Type-checks every package                                  |
+| `pnpm test`          | Runs the Vitest suites in web and api                      |
+| `pnpm db:up`         | Starts the Docker PostgreSQL and waits until it is healthy |
+| `pnpm db:down`       | Stops the Docker PostgreSQL (data is kept)                 |
+| `pnpm db:migrate`    | Creates and applies Prisma migrations                      |
+| `pnpm db:generate`   | Regenerates the Prisma client                              |
+| `pnpm db:studio`     | Opens Prisma Studio                                        |
+| `pnpm db:seed-admin` | Creates the first admin account (see below)                |
+
+## Admin account
+
+Nobody can become an admin through the app, so the first one is created from the command line. The
+credentials come from the environment and are never stored in the repository:
+
+```bash
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a long secret' pnpm db:seed-admin
+```
+
+The password must be 8 to 128 characters. The command is safe to run again: if the email already has
+an account it is made an admin and its password is left alone. Sign in with these credentials, then
+open `/admin/moderation`.
 
 ## Project structure
 

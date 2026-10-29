@@ -1,5 +1,6 @@
 import { VALIDATION_CODES } from '@reclo/shared'
-import { Router } from 'express'
+import cookieParser from 'cookie-parser'
+import express, { Router } from 'express'
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../app'
@@ -265,13 +266,16 @@ describe('requireRole', () => {
     router.get('/admin-only', requireAuth, requireRole('ADMIN'), (_req, res) => {
       res.json({ ok: true })
     })
-    // Mounted on the same express app: createApp exposes no extension point, so build a sibling.
-    return { ...ctx, router, requireAuth }
+    // createApp exposes no extension point (and ends in a 404), so the test route sits in front of it.
+    const host = express()
+    host.use(cookieParser())
+    host.use('/test', router)
+    host.use(ctx.app)
+    return { ...ctx, app: host, requireAuth }
   }
 
   it('returns 401 without a session, 403 for a CLIENT and 200 for an ADMIN', async () => {
-    const { app, setRole, router } = appWithAdminRoute()
-    app.use('/test', router)
+    const { app, setRole } = appWithAdminRoute()
     const registered = await request(app).post('/api/auth/register').send(credentials)
     const cookie = sessionCookie(registered)
 

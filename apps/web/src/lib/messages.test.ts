@@ -43,16 +43,32 @@ describe('apiErrorText', () => {
     )
   })
 
-  it('falls back to the response string when there is no code', () => {
-    // A route that has not been migrated, or an older server.
-    const error = new ApiRequestError(500, 'Something specific went wrong')
+  it('keeps the sentence of a well-formed error body whose code this build does not know', () => {
+    // A newer server (KAN-79): its sentence is the only description there is.
+    const body = { error: 'Something specific went wrong', code: 'NEW_CODE' }
+    const error = new ApiRequestError(500, body.error, undefined, body)
 
     expect(messages().apiErrorText(error)).toBe('Something specific went wrong')
   })
 
-  it('falls back for a plain error, such as a network failure', () => {
+  it.each([
+    [0, 'en', 'Cannot reach the server. Check your connection and try again.'],
+    [0, 'ru', 'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.'],
+    [429, 'uz', "Juda ko'p urinish, keyinroq qayta urinib ko'ring"],
+    [502, 'en', 'Something went wrong'],
+  ] as const)(
+    'answers status %i in %s when there is no error body to read',
+    (status, locale, text) => {
+      // No response at all, or an HTML page from a proxy: the client's own English must not show.
+      const error = new ApiRequestError(status, 'Something went wrong. Please try again.')
+
+      expect(messages(locale).apiErrorText(error)).toBe(text)
+    },
+  )
+
+  it('answers a plain error with the generic message, not its text', () => {
     expect(messages().apiErrorText(new Error('Cannot reach the server'))).toBe(
-      'Cannot reach the server',
+      'Something went wrong',
     )
   })
 
@@ -93,8 +109,11 @@ describe('fieldErrorText', () => {
     )
   })
 
-  it('passes a sentence through, since Zod built-ins were never customised', () => {
-    expect(messages().fieldErrorText('Invalid input')).toBe('Invalid input')
+  it('reads anything that is not a known code as "not valid", never as the sentence', () => {
+    expect(messages().fieldErrorText('Invalid input')).toBe('This value is not valid')
+    expect(messages('ru').fieldErrorText('validation.from.the.future')).toBe(
+      'Недопустимое значение',
+    )
   })
 
   it('leaves undefined alone, so a valid field renders nothing', () => {

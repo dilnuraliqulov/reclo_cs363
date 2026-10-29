@@ -10,8 +10,8 @@ import {
 } from '@reclo/shared'
 import { Router, type RequestHandler } from 'express'
 import { rateLimit } from 'express-rate-limit'
-import { z } from 'zod'
 import { requireRole } from '../auth/middleware'
+import { sendValidationError } from '../http'
 import { decodeCursor, encodeCursor, type InquiryCursor } from './cursor'
 import { OpenInquiryExistsError, type InquiryStore } from './store'
 
@@ -33,15 +33,6 @@ const PLACEMENT_NOT_FOUND = 'Placement not found'
 // reset to page one, which would look like the list restarting at random.
 
 const DUPLICATE_WINDOW_MS = DUPLICATE_WINDOW_DAYS * 24 * 60 * 60 * 1000
-
-function validationError(error: z.ZodError): ApiError {
-  return {
-    error: 'Invalid input',
-    code: 'INVALID_INPUT',
-    // Already codes, not sentences: these schemas are parsed by the web form too.
-    fieldErrors: z.flattenError(error).fieldErrors,
-  }
-}
 
 export function createInquiryRouter({
   store,
@@ -66,7 +57,7 @@ export function createInquiryRouter({
     try {
       const parsed = inquiryHistoryQuerySchema.safeParse(req.query)
       if (!parsed.success) {
-        res.status(400).json(validationError(parsed.error))
+        sendValidationError(res, parsed.error, 'INVALID_QUERY')
         return
       }
       const { status, limit } = parsed.data
@@ -113,7 +104,7 @@ export function createInquiryRouter({
     try {
       const parsed = createInquiryRequestSchema.safeParse(req.body)
       if (!parsed.success) {
-        res.status(400).json(validationError(parsed.error))
+        sendValidationError(res, parsed.error)
         return
       }
       const { placementId, message, contactName, contactPhone, contactEmail } = parsed.data

@@ -26,7 +26,10 @@ export type RegisterRequest = z.infer<typeof registerRequestSchema>
 
 export const loginRequestSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, VALIDATION_CODES.passwordRequired).max(PASSWORD_MAX_LENGTH),
+  password: z
+    .string()
+    .min(1, VALIDATION_CODES.passwordRequired)
+    .max(PASSWORD_MAX_LENGTH, VALIDATION_CODES.passwordTooLong),
 })
 export type LoginRequest = z.infer<typeof loginRequestSchema>
 
