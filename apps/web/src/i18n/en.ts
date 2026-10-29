@@ -106,6 +106,8 @@ export const en = {
   'cart.open': 'Media plan',
   'cart.title': 'Your media plan',
   'cart.subtitle': 'Placements you have collected. They are kept on this device.',
+  'cart.subtitleAccount': 'Placements you have collected. They are saved to your account.',
+  'cart.syncFailed': 'Your media plan could not be saved to your account',
   'cart.items': { one: '{count} placement', other: '{count} placements' },
   'cart.empty': 'Your media plan is empty',
   'cart.emptyBody': 'Open a billboard or LED screen on the map and add it here.',
@@ -149,6 +151,7 @@ export const en = {
   'error.PLACEMENT_NOT_PENDING': 'This listing is no longer waiting for review',
   'error.PLACEMENT_CHANGED': 'The vendor changed this listing. Review it again.',
   'error.PLACEMENT_NO_PHOTOS': "A listing without photos can't be approved",
+  'error.CART_FULL': 'Your media plan is full',
 
   'validation.email.invalid': 'Enter a valid email',
   'validation.email.taken': 'Email is already registered',

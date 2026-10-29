@@ -28,6 +28,8 @@ export interface CartStore {
   sync: () => void
   /** Applies the outcome of revalidation to whatever the cart holds now. */
   applyRestore: (refreshed: readonly PlacementDetail[], removedIds: readonly string[]) => void
+  /** Replaces the whole list with the account cart the server answered (KAN-32). */
+  replace: (items: readonly CartItem[]) => void
 }
 
 function getStorage(): Storage | null {
@@ -127,6 +129,9 @@ export function createCartStore(): CartStore {
             return fresh ? toCartItem(fresh, item.addedAt) : item
           }),
       )
+    },
+    replace(items) {
+      commit(items)
     },
   }
 }

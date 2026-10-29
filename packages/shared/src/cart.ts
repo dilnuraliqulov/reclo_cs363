@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { VALIDATION_CODES } from './errors'
 import { placementTypeSchema, type PlacementDetail, type PlacementMarker } from './placement'
 
 /** The `localStorage` key holding the whole cart as one JSON document. */
@@ -33,6 +34,21 @@ export const cartStateSchema = z
     path: ['items'],
   })
 export type CartState = z.infer<typeof cartStateSchema>
+
+/** Every `/api/cart` answer: the whole account cart, oldest first (KAN-31). */
+export const cartResponseSchema = z.object({
+  items: z.array(cartItemSchema).max(CART_MAX_ITEMS),
+})
+export type CartResponse = z.infer<typeof cartResponseSchema>
+
+/** `POST /api/cart/merge`: the ids in the browser's cart, in the order they were added. */
+export const mergeCartRequestSchema = z.object({
+  placementIds: z
+    .array(z.string().uuid())
+    .max(CART_MAX_ITEMS)
+    .refine((ids) => new Set(ids).size === ids.length, { message: VALIDATION_CODES.invalid }),
+})
+export type MergeCartRequest = z.infer<typeof mergeCartRequestSchema>
 
 /** Builds the stored snapshot from either the map marker or the full detail. */
 export function toCartItem(

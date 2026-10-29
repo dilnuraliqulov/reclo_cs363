@@ -104,6 +104,8 @@ export const ru = {
   'cart.open': 'Медиаплан',
   'cart.title': 'Ваш медиаплан',
   'cart.subtitle': 'Выбранные вами места. Они хранятся на этом устройстве.',
+  'cart.subtitleAccount': 'Выбранные вами места. Они сохранены в вашем аккаунте.',
+  'cart.syncFailed': 'Не удалось сохранить медиаплан в аккаунте',
   'cart.items': {
     one: '{count} место',
     few: '{count} места',
@@ -155,6 +157,7 @@ export const ru = {
   'error.PLACEMENT_NOT_PENDING': 'Это объявление больше не ожидает проверки',
   'error.PLACEMENT_CHANGED': 'Продавец изменил это объявление. Проверьте его заново.',
   'error.PLACEMENT_NO_PHOTOS': 'Объявление без фото нельзя одобрить',
+  'error.CART_FULL': 'Медиаплан заполнен',
 
   'validation.email.invalid': 'Введите корректную почту',
   'validation.email.taken': 'Эта почта уже зарегистрирована',
