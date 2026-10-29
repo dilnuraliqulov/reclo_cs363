@@ -19,6 +19,7 @@
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @reclo/api run db:migrate",
     "db:generate": "pnpm --filter @reclo/api run db:generate",
+    "db:seed-admin": "pnpm --filter @reclo/api run db:seed-admin",
     "db:studio": "pnpm --filter @reclo/api run db:studio"
   },
   "devDependencies": {
