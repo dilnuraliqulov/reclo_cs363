@@ -208,6 +208,8 @@ function setup(limit = 1000) {
     resume: spy(notFound),
     addPhoto: spy(notFound),
     removePhoto: spy(notFound),
+    getPricing: notFound,
+    savePricing: spy(notFound),
   }
   const adminStore: AdminPlacementStore = {
     list: async () => ({ placements: [], total: 0 }),

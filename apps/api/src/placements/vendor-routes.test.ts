@@ -91,6 +91,8 @@ function setup(options: { withPhotos?: boolean; rateLimit?: number; uploadsDir?:
         : { kind: 'not_found' as const },
     ),
     removePhoto: mutation('PENDING_REVIEW'),
+    getPricing: vi.fn(async () => ({ kind: 'not_found' as const })),
+    savePricing: vi.fn(async () => ({ kind: 'not_found' as const })),
   } satisfies VendorPlacementStore & Record<string, unknown>
 
   const photos: PhotoStorage = {
