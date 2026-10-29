@@ -4,6 +4,7 @@ import {
   MESSAGE_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
+  REJECTION_REASON_LIMITS,
   validationCodeSchema,
 } from '@reclo/shared'
 import { useMemo } from 'react'
@@ -30,6 +31,8 @@ const VALIDATION_VALUES: Partial<Record<MessageKey, Values>> = {
     max: LISTING_LIMITS.priceMax.toLocaleString('en'),
   },
   'validation.size.range': { max: LISTING_LIMITS.sizeMax },
+  'validation.reason.tooShort': { min: REJECTION_REASON_LIMITS.min },
+  'validation.reason.tooLong': { max: REJECTION_REASON_LIMITS.max },
 }
 
 /**

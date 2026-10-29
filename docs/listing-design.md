@@ -11,7 +11,8 @@
   `archivedAt = now()`; the row, its photos and its inquiries stay. Inquiries cascade-delete with the
   placement, and the client history (KAN-9) joins the placement without filtering on its status, so a
   hard delete would erase a client's history. Removing rows for good is an admin or ops matter.
-- **Status state machine** (vendor-initiated transitions only; admin approval is KAN-14):
+- **Status state machine** (vendor-initiated transitions only; the admin rows and `REJECTED` are in
+  [`moderation-design.md`](./moderation-design.md), which supersedes the two admin rows below):
 
   | From             | To               | Who    | How                                                       |
   | ---------------- | ---------------- | ------ | --------------------------------------------------------- |
@@ -20,8 +21,9 @@
   | `INACTIVE`       | `ACTIVE`         | vendor | resume                                                    |
   | `ACTIVE`         | `PENDING_REVIEW` | system | vendor edits any content field                            |
   | `INACTIVE`       | `PENDING_REVIEW` | system | vendor edits any content field                            |
-  | `PENDING_REVIEW` | `ACTIVE`         | admin  | KAN-14 (not here)                                         |
-  | `PENDING_REVIEW` | `INACTIVE`       | admin  | KAN-14 (reject; not here)                                 |
+  | `REJECTED`       | `PENDING_REVIEW` | system | vendor edits any content field (the resubmit)             |
+  | `PENDING_REVIEW` | `ACTIVE`         | admin  | approve (KAN-14, moderation-design.md)                    |
+  | `PENDING_REVIEW` | `REJECTED`       | admin  | reject, not `INACTIVE` (KAN-14, moderation-design.md)     |
   | any non-archived | `ARCHIVED`       | vendor | archive                                                   |
   | `ARCHIVED`       | `PENDING_REVIEW` | vendor | restore (never straight to `ACTIVE`; goes back to review) |
 
@@ -29,7 +31,7 @@
   An `ARCHIVED` listing cannot be edited: restore it first.
 
 - **A content edit re-enters moderation.** Editing an `ACTIVE` listing sets it back to
-  `PENDING_REVIEW`, and the same goes for `INACTIVE`. Otherwise a vendor could get a harmless listing
+  `PENDING_REVIEW`, and the same goes for `INACTIVE` and `REJECTED`. Otherwise a vendor could get a harmless listing
   approved and then swap in anything. KAN-14 relies on this. The price is that a typo fix takes the
   listing off the map until an admin re-approves it; the editor says so before saving (see
   [States](#states)). Because an edit also pulls a paused listing out of `INACTIVE`, resuming
@@ -296,7 +298,8 @@ accept="image/jpeg,image/png,image/webp">`, a counter "3 / 8", and a hint with t
   back to My listings; it does not distinguish "missing" from "not yours", matching the API.
 - **Editor, status banner (edit):** shows the current status in words. `PENDING_REVIEW`: _"Waiting for
   review. It is not on the map yet."_ `ACTIVE`: _"Live on the map. Saving changes sends it back for
-  review and removes it from the map until it is approved."_ `INACTIVE`: same warning as `ACTIVE`.
+  review and removes it from the map until it is approved."_ `INACTIVE`: same warning as `ACTIVE`. `REJECTED`: the admin's reason in plain text, then _"Fix the
+  issues and save to send it for review again."_
   `ARCHIVED`: _"Archived. Restore it to edit."_ with a "Restore" button; the whole form is
   `disabled`.
 - **Editor, validation:** on submit, then on change, through the shared schema; messages render in

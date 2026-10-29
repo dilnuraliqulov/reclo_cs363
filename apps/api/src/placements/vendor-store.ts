@@ -28,7 +28,7 @@ export interface VendorPlacementStore {
     query: VendorPlacementListQuery,
   ) => Promise<{ placements: VendorPlacement[]; total: number }>
   find: (vendorId: string, id: string) => Promise<VendorPlacement | null>
-  /** Archived listings answer `conflict`; ACTIVE and INACTIVE ones go back to PENDING_REVIEW. */
+  /** Archived listings answer `conflict`; ACTIVE, INACTIVE and REJECTED ones go back to PENDING_REVIEW. */
   update: (vendorId: string, id: string, data: UpdatePlacementRequest) => Promise<MutationResult>
   archive: (vendorId: string, id: string) => Promise<MutationResult>
   restore: (vendorId: string, id: string) => Promise<MutationResult>

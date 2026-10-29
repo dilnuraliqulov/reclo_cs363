@@ -18,14 +18,14 @@ import type {
 
 /** The vendor-initiated transitions of docs/listing-design.md. Edits are handled in `update`. */
 const TRANSITIONS = {
-  archive: { from: ['ACTIVE', 'PENDING_REVIEW', 'INACTIVE'], to: 'ARCHIVED' },
+  archive: { from: ['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'REJECTED'], to: 'ARCHIVED' },
   restore: { from: ['ARCHIVED'], to: 'PENDING_REVIEW' },
   pause: { from: ['ACTIVE'], to: 'INACTIVE' },
   resume: { from: ['INACTIVE'], to: 'ACTIVE' },
 } as const satisfies Record<string, { from: PlacementStatus[]; to: PlacementStatus }>
 
-/** Statuses a content edit sends back through moderation. */
-const REVIEWED: PlacementStatus[] = ['ACTIVE', 'INACTIVE']
+/** Statuses a content edit sends back through moderation (REJECTED: the edit is the resubmit). */
+const REVIEWED: PlacementStatus[] = ['ACTIVE', 'INACTIVE', 'REJECTED']
 
 /** Concurrent uploads to one listing race on the photo list; this many tries before giving up. */
 const PHOTO_ATTEMPTS = 3
@@ -44,7 +44,7 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
       // Stated rather than left to the schema default, so a changed default cannot publish.
       data: { ...data, vendorId, status: 'PENDING_REVIEW', photos: [] },
     })
-    return this.toVendorPlacement(row)
+    return this.toVendorPlacement(row, null)
   }
 
   async list(vendorId: string, query: VendorPlacementListQuery) {
@@ -61,12 +61,18 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
       }),
       this.prisma.placement.count({ where }),
     ])
-    return { placements: rows.map((row) => this.toVendorPlacement(row)), total }
+    const reasons = await this.rejectionReasons(rows)
+    return {
+      placements: rows.map((row) => this.toVendorPlacement(row, reasons.get(row.id) ?? null)),
+      total,
+    }
   }
 
   async find(vendorId: string, id: string) {
     const row = await this.prisma.placement.findFirst({ where: { id, vendorId } })
-    return row ? this.toVendorPlacement(row) : null
+    if (!row) return null
+    const reasons = await this.rejectionReasons([row])
+    return this.toVendorPlacement(row, reasons.get(row.id) ?? null)
   }
 
   async update(
@@ -202,7 +208,26 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
     return placement ? { kind: 'ok', placement } : { kind: 'not_found' }
   }
 
-  private toVendorPlacement(row: PlacementRow): VendorPlacement {
+  /**
+   * The reason from each REJECTED listing's latest rejection event. Only REJECTED rows are looked
+   * up: a listing edited back into review no longer shows a stale reason.
+   */
+  private async rejectionReasons(rows: PlacementRow[]): Promise<Map<string, string | null>> {
+    const ids = rows.filter((row) => row.status === 'REJECTED').map((row) => row.id)
+    const reasons = new Map<string, string | null>()
+    if (ids.length === 0) return reasons
+    const events = await this.prisma.moderationEvent.findMany({
+      where: { placementId: { in: ids }, action: 'REJECTED' },
+      orderBy: { createdAt: 'desc' },
+      select: { placementId: true, reason: true },
+    })
+    for (const event of events) {
+      if (!reasons.has(event.placementId)) reasons.set(event.placementId, event.reason)
+    }
+    return reasons
+  }
+
+  private toVendorPlacement(row: PlacementRow, rejectionReason: string | null): VendorPlacement {
     const photos = row.photos.map((photo) => publicPhotoUrl(photo, this.publicUrl))
     return {
       id: row.id,
@@ -227,6 +252,7 @@ export class PrismaVendorPlacementStore implements VendorPlacementStore {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
+      rejectionReason,
     }
   }
 }

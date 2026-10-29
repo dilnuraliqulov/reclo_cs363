@@ -4,7 +4,13 @@ import { VALIDATION_CODES } from './errors'
 export const placementTypeSchema = z.enum(['BILLBOARD', 'LED_SCREEN'])
 export type PlacementType = z.infer<typeof placementTypeSchema>
 
-export const placementStatusSchema = z.enum(['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED'])
+export const placementStatusSchema = z.enum([
+  'ACTIVE',
+  'PENDING_REVIEW',
+  'INACTIVE',
+  'REJECTED',
+  'ARCHIVED',
+])
 export type PlacementStatus = z.infer<typeof placementStatusSchema>
 
 export const placementTierSchema = z.enum(['BRONZE', 'SILVER', 'GOLD'])
@@ -185,6 +191,8 @@ export type VendorPlacementListQuery = z.infer<typeof vendorPlacementListQuerySc
 
 export const vendorPlacementSchema = placementDetailSchema.extend({
   archivedAt: z.string().nullable(),
+  /** The admin's reason, only while status is REJECTED (docs/moderation-design.md). */
+  rejectionReason: z.string().nullable(),
 })
 export type VendorPlacement = z.infer<typeof vendorPlacementSchema>
 

@@ -107,6 +107,9 @@ export const en = {
   'error.PHOTO_TOO_LARGE': 'The photo is larger than 5 MB',
   'error.PHOTO_TYPE_INVALID': 'Photos must be JPEG, PNG or WebP',
   'error.PHOTO_NOT_FOUND': 'Photo not found',
+  'error.PLACEMENT_NOT_PENDING': 'This listing is no longer waiting for review',
+  'error.PLACEMENT_CHANGED': 'The vendor changed this listing. Review it again.',
+  'error.PLACEMENT_NO_PHOTOS': "A listing without photos can't be approved",
 
   'validation.email.invalid': 'Enter a valid email',
   'validation.email.taken': 'Email is already registered',

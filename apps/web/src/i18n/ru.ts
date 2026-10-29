@@ -105,6 +105,9 @@ export const ru = {
   'error.PHOTO_TOO_LARGE': 'Фото больше 5 МБ',
   'error.PHOTO_TYPE_INVALID': 'Фото должно быть в формате JPEG, PNG или WebP',
   'error.PHOTO_NOT_FOUND': 'Фото не найдено',
+  'error.PLACEMENT_NOT_PENDING': 'Это объявление больше не ожидает проверки',
+  'error.PLACEMENT_CHANGED': 'Продавец изменил это объявление. Проверьте его заново.',
+  'error.PLACEMENT_NO_PHOTOS': 'Объявление без фото нельзя одобрить',
 
   'validation.email.invalid': 'Введите корректную почту',
   'validation.email.taken': 'Эта почта уже зарегистрирована',

@@ -36,6 +36,7 @@ const listing: VendorPlacement = {
   createdAt: '2026-10-10T10:00:00.000Z',
   updatedAt: '2026-10-12T15:00:00.000Z',
   archivedAt: null,
+  rejectionReason: null,
 }
 
 const validBody = {

@@ -7,6 +7,8 @@ import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
 import { createInquiryRouter } from './inquiries/routes'
 import type { InquiryStore } from './inquiries/store'
+import { createAdminPlacementRouter } from './placements/admin-routes'
+import type { AdminPlacementStore } from './placements/admin-store'
 import { createPlacementRouter } from './placements/routes'
 import type { PhotoStorage } from './placements/photo-storage'
 import type { PlacementStore } from './placements/store'
@@ -22,6 +24,8 @@ export interface AppDependencies {
   placementStore?: PlacementStore
   /** Vendor listing persistence. The `/api/vendor/placements` routes are mounted only when present. */
   vendorPlacementStore?: VendorPlacementStore
+  /** Moderation persistence. The `/api/admin/placements` routes are mounted only when present. */
+  adminPlacementStore?: AdminPlacementStore
   /** Where listing photos go. Without it the photo upload and delete routes are not mounted. */
   photoStorage?: PhotoStorage
   /** Directory served at `/uploads`. Omit to serve nothing (tests). */
@@ -38,6 +42,8 @@ export interface AppDependencies {
   inquiryRateLimitMax?: number
   /** Max mutating vendor listing requests per IP per 15 minutes. Defaults to 120. */
   vendorRateLimitMax?: number
+  /** Max approve + reject requests per IP per 15 minutes. Defaults to 120. */
+  adminRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
 }
@@ -48,6 +54,7 @@ export function createApp({
   placementStore,
   inquiryStore,
   vendorPlacementStore,
+  adminPlacementStore,
   photoStorage,
   uploadsDir,
   corsOrigin,
@@ -55,6 +62,7 @@ export function createApp({
   authRateLimitMax = 20,
   inquiryRateLimitMax = 20,
   vendorRateLimitMax = 120,
+  adminRateLimitMax = 120,
   secureCookies = false,
 }: AppDependencies): Express {
   const app = express()
@@ -99,6 +107,17 @@ export function createApp({
         photos: photoStorage,
         requireAuth,
         rateLimitMax: vendorRateLimitMax,
+      }),
+    )
+  }
+
+  if (adminPlacementStore) {
+    app.use(
+      '/api/admin/placements',
+      createAdminPlacementRouter({
+        store: adminPlacementStore,
+        requireAuth,
+        rateLimitMax: adminRateLimitMax,
       }),
     )
   }
