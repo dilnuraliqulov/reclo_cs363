@@ -3,6 +3,7 @@ import {
   adminPlacementResponseSchema,
   apiErrorSchema,
   authResponseSchema,
+  cartResponseSchema,
   createVendorResponseSchema,
   healthResponseSchema,
   inquiryHistoryResponseSchema,
@@ -15,6 +16,7 @@ import {
   vendorListResponseSchema,
   type ApiError,
   type ApprovePlacementRequest,
+  type CartItem,
   type CreateInquiryRequest,
   type CreateVendorRequest,
   type ErrorCode,
@@ -250,3 +252,18 @@ export async function fetchVendors(): Promise<VendorSummary[]> {
   const response = await request('/api/admin/vendors', { method: 'GET' })
   return vendorListResponseSchema.parse(await response.json()).vendors
 }
+
+async function requestCart(path: string, method: string, body?: unknown): Promise<CartItem[]> {
+  const response = await request(path, { method, body })
+  return cartResponseSchema.parse(await response.json()).items
+}
+
+/** Client only: the account media plan (KAN-31). Every call answers the whole cart. */
+export const fetchCart = () => requestCart('/api/cart', 'GET')
+export const addCartItem = (placementId: string) =>
+  requestCart(`/api/cart/items/${encodeURIComponent(placementId)}`, 'PUT')
+export const removeCartItem = (placementId: string) =>
+  requestCart(`/api/cart/items/${encodeURIComponent(placementId)}`, 'DELETE')
+export const clearCart = () => requestCart('/api/cart', 'DELETE')
+export const mergeCart = (placementIds: string[]) =>
+  requestCart('/api/cart/merge', 'POST', { placementIds })

@@ -6,6 +6,7 @@ import { RequireRole } from '@/auth/RequireRole'
 import { CartProvider } from '@/components/cart/CartProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { LocaleProvider } from '@/i18n/LocaleProvider'
+import { AdminInquiriesPage } from '@/pages/AdminInquiriesPage'
 import { AdminVendorsPage } from '@/pages/AdminVendorsPage'
 import { InquiryHistoryPage } from '@/pages/InquiryHistoryPage'
 import { ModerationPage } from '@/pages/ModerationPage'
@@ -34,6 +35,7 @@ export default function App() {
             <Route element={<RequireRole role="ADMIN" />}>
               <Route path="/admin/moderation/:id?" element={<ModerationPage />} />
               <Route path="/admin/vendors" element={<AdminVendorsPage />} />
+              <Route path="/admin/inquiries" element={<AdminInquiriesPage />} />
             </Route>
             <Route element={<GuestOnly />}>
               <Route path="/sign-in" element={<SignInPage />} />

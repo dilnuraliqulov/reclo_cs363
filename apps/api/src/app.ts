@@ -2,11 +2,15 @@ import type { HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { type Express } from 'express'
+import { createAdminInquiryRouter } from './admin/inquiry-routes'
+import type { AdminInquiryStore } from './admin/inquiry-store'
 import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
 import type { Mailer } from './email/mailer'
+import { createCartRouter } from './cart/routes'
+import type { CartStore } from './cart/store'
 import {
   errorHandler,
   JSON_BODY_LIMIT,
@@ -45,6 +49,10 @@ export interface AppDependencies {
   mailer?: Mailer
   /** Origin of the web app, for links in emails. Defaults to http://localhost:5173. */
   webPublicUrl?: string
+  /** Admin inquiry history. The `/api/admin/inquiries` routes are mounted only when present. */
+  adminInquiryStore?: AdminInquiryStore
+  /** A signed-in client's media plan. The `/api/cart` routes are mounted only when present. */
+  cartStore?: CartStore
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
   corsOrigin?: string
   /** Clock, injectable for session expiry tests. */
@@ -57,6 +65,8 @@ export interface AppDependencies {
   vendorRateLimitMax?: number
   /** Max approve + reject + create-vendor requests per IP per 15 minutes. Defaults to 120. */
   adminRateLimitMax?: number
+  /** Max cart writes per IP per 15 minutes. Defaults to 120. */
+  cartRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
 }
@@ -68,6 +78,8 @@ export function createApp({
   inquiryStore,
   mailer,
   webPublicUrl = 'http://localhost:5173',
+  adminInquiryStore,
+  cartStore,
   vendorPlacementStore,
   adminPlacementStore,
   photoStorage,
@@ -78,6 +90,7 @@ export function createApp({
   inquiryRateLimitMax = 20,
   vendorRateLimitMax = 120,
   adminRateLimitMax = 120,
+  cartRateLimitMax = 120,
   secureCookies = false,
 }: AppDependencies): Express {
   const app = express()
@@ -144,6 +157,13 @@ export function createApp({
     )
   }
 
+  if (adminInquiryStore) {
+    app.use(
+      '/api/admin/inquiries',
+      createAdminInquiryRouter({ store: adminInquiryStore, requireAuth }),
+    )
+  }
+
   if (uploadsDir) {
     // Photos are public, like the listings they belong to. `nosniff` keeps a browser from treating
     // a file as anything but the image type its extension says.
@@ -167,6 +187,13 @@ export function createApp({
         mailer,
         webPublicUrl,
       }),
+    )
+  }
+
+  if (cartStore) {
+    app.use(
+      '/api/cart',
+      createCartRouter({ store: cartStore, requireAuth, rateLimitMax: cartRateLimitMax }),
     )
   }
 

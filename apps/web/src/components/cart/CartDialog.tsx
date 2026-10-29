@@ -18,7 +18,7 @@ import { useCart } from './context'
 /** The header button with a count, opening the list of collected placements. */
 export function CartDialog() {
   const t = useT()
-  const { items, count, remove, clear } = useCart()
+  const { items, count, isAccount, remove, clear } = useCart()
   const [open, setOpen] = useState(false)
   const total = items.reduce((sum, item) => sum + item.pricePerMonth, 0)
 
@@ -35,7 +35,9 @@ export function CartDialog() {
         <DialogHeader>
           <DialogTitle>{t('cart.title')}</DialogTitle>
           <DialogDescription>
-            {count > 0 ? t('cart.items', { count }) : t('cart.subtitle')}
+            {count > 0
+              ? t('cart.items', { count })
+              : t(isAccount ? 'cart.subtitleAccount' : 'cart.subtitle')}
           </DialogDescription>
         </DialogHeader>
 

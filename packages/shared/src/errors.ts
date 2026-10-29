@@ -32,6 +32,8 @@ export const errorCodeSchema = z.enum([
   'PLACEMENT_NOT_PENDING',
   'PLACEMENT_CHANGED',
   'PLACEMENT_NO_PHOTOS',
+  'CART_FULL',
+  'INQUIRY_NOT_FOUND',
   'INTERNAL',
 ])
 export type ErrorCode = z.infer<typeof errorCodeSchema>
@@ -72,6 +74,7 @@ export const VALIDATION_CODES = {
   reasonTooLong: 'validation.reason.tooLong',
   companyNameRequired: 'validation.companyName.required',
   companyNameTooLong: 'validation.companyName.tooLong',
+  dateOrder: 'validation.dates.order',
 } as const
 
 /**

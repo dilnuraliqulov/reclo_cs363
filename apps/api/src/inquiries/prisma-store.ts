@@ -1,4 +1,9 @@
-import { OPEN_INQUIRY_STATUSES, type Inquiry, type InquiryHistoryItem } from '@reclo/shared'
+import {
+  OPEN_INQUIRY_STATUSES,
+  type Inquiry,
+  type InquiryHistoryItem,
+  type InquiryPlacementSummary,
+} from '@reclo/shared'
 import { Prisma, type PrismaClient } from '../generated/prisma/client'
 import {
   OpenInquiryExistsError,
@@ -6,6 +11,32 @@ import {
   type InquiryStore,
   type ListClientInquiriesInput,
 } from './store'
+
+/** The placement columns behind `InquiryPlacementSummary`. Shared with the admin inquiry store. */
+export const placementSummarySelect = {
+  id: true,
+  title: true,
+  city: true,
+  type: true,
+  status: true,
+} as const
+
+type PlacementSummaryRow = Prisma.PlacementGetPayload<{ select: typeof placementSummarySelect }>
+
+export function toPlacementSummary(
+  placement: PlacementSummaryRow | null,
+): InquiryPlacementSummary | null {
+  return placement
+    ? {
+        id: placement.id,
+        title: placement.title,
+        city: placement.city,
+        type: placement.type,
+        // Only an ACTIVE placement is reachable on the map, so only it gets a link.
+        isViewable: placement.status === 'ACTIVE',
+      }
+    : null
+}
 
 /** The columns that make up the client-facing `Inquiry`. */
 const inquirySelect = {
@@ -28,7 +59,7 @@ const inquirySelect = {
  */
 const historySelect = {
   ...inquirySelect,
-  placement: { select: { id: true, title: true, city: true, type: true, status: true } },
+  placement: { select: placementSummarySelect },
 } as const
 
 type InquiryRow = Prisma.InquiryGetPayload<{ select: typeof inquirySelect }>
@@ -53,16 +84,7 @@ function toInquiry(row: InquiryRow): Inquiry {
 function toHistoryItem(row: HistoryRow): InquiryHistoryItem {
   return {
     ...toInquiry(row),
-    placement: row.placement
-      ? {
-          id: row.placement.id,
-          title: row.placement.title,
-          city: row.placement.city,
-          type: row.placement.type,
-          // Only an ACTIVE placement is reachable on the map, so only it gets a link.
-          isViewable: row.placement.status === 'ACTIVE',
-        }
-      : null,
+    placement: toPlacementSummary(row.placement),
   }
 }
 

@@ -10,8 +10,17 @@ import {
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AuthContext, type AuthState } from '@/auth/useAuth'
 import { LocaleProvider } from '@/i18n/LocaleProvider'
-import { ApiRequestError, fetchPlacementDetail } from '@/lib/api'
+import {
+  ApiRequestError,
+  addCartItem,
+  clearCart,
+  fetchCart,
+  fetchPlacementDetail,
+  mergeCart,
+  removeCartItem,
+} from '@/lib/api'
 import { createCartStore } from '@/lib/cartStore'
 import { pinLocale } from '@/test/locale'
 import { AddToCartButton } from './AddToCartButton'
@@ -29,8 +38,20 @@ vi.mock('sonner', () => ({ toast: toastMock }))
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api')>()),
   fetchPlacementDetail: vi.fn(),
+  fetchCart: vi.fn(),
+  addCartItem: vi.fn(),
+  removeCartItem: vi.fn(),
+  clearCart: vi.fn(),
+  mergeCart: vi.fn(),
 }))
 const fetchDetail = vi.mocked(fetchPlacementDetail)
+
+const SIGNED_OUT: AuthState = {
+  user: null,
+  isLoading: false,
+  setUser: () => undefined,
+  signOut: () => Promise.resolve(),
+}
 
 const ID_A = 'b1e0696a-54c3-4d40-84c4-f2a89326e680'
 const ID_B = '0d6c3c2e-0a52-4b0e-9d52-5f7a1d7d2b11'
@@ -95,20 +116,22 @@ function storedIds(): string[] {
   return raw ? (JSON.parse(raw) as { items: CartItem[] }).items.map((i) => i.id) : []
 }
 
-function Harness() {
+function Harness({ auth = SIGNED_OUT }: { auth?: AuthState }) {
   return (
     <LocaleProvider>
-      <CartProvider>
-        <AddToCartButton placement={marker} />
-        <CartDialog />
-      </CartProvider>
+      <AuthContext.Provider value={auth}>
+        <CartProvider>
+          <AddToCartButton placement={marker} />
+          <CartDialog />
+        </CartProvider>
+      </AuthContext.Provider>
     </LocaleProvider>
   )
 }
 
-function renderApp(locale: Locale = 'en') {
+function renderApp(locale: Locale = 'en', auth: AuthState = SIGNED_OUT) {
   pinLocale(locale)
-  return render(<Harness />)
+  return render(<Harness auth={auth} />)
 }
 
 async function openCart(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
@@ -489,5 +512,121 @@ describe('localized labels', () => {
         '1 место больше недоступно и удалено из медиаплана',
       ),
     )
+  })
+})
+
+describe('account cart (KAN-32)', () => {
+  const CLIENT: AuthState = {
+    ...SIGNED_OUT,
+    user: { id: 'client-1', email: 'client@example.com', role: 'CLIENT' },
+  }
+  const VENDOR: AuthState = {
+    ...SIGNED_OUT,
+    user: { id: 'vendor-1', email: 'vendor@example.com', role: 'VENDOR' },
+  }
+
+  beforeEach(() => {
+    vi.mocked(mergeCart).mockResolvedValue([])
+    vi.mocked(fetchCart).mockResolvedValue([])
+    vi.mocked(addCartItem).mockResolvedValue([])
+    vi.mocked(removeCartItem).mockResolvedValue([])
+    vi.mocked(clearCart).mockResolvedValue([])
+  })
+
+  it('merges the browser cart into the account and shows the server answer', async () => {
+    seed([item(ID_B, 'Kept'), item(ID_C, 'Gone')])
+    vi.mocked(mergeCart).mockResolvedValue([item(ID_B, 'Kept'), item(ID_A, 'From account')])
+    const user = userEvent.setup()
+    renderApp('en', CLIENT)
+
+    await waitFor(() => expect(storedIds()).toEqual([ID_B, ID_A]))
+    expect(mergeCart).toHaveBeenCalledWith([ID_B, ID_C])
+    expect(fetchDetail).not.toHaveBeenCalled()
+    expect(toastMock.info).toHaveBeenCalledWith(
+      '1 placement is no longer available and was removed from your media plan',
+    )
+    await openCart(user, /^Media plan/)
+    expect(await screen.findByText('From account')).toBeInTheDocument()
+  })
+
+  it('says an empty account cart is saved to the account', async () => {
+    const user = userEvent.setup()
+    renderApp('en', CLIENT)
+    await waitFor(() => expect(mergeCart).toHaveBeenCalledWith([]))
+
+    await openCart(user, /^Media plan/)
+    expect(
+      await screen.findByText('Placements you have collected. They are saved to your account.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Your media plan is empty')).toBeInTheDocument()
+  })
+
+  it('sends adds, removes and clear to the API', async () => {
+    vi.mocked(addCartItem).mockResolvedValue([item(ID_A, marker.title)])
+    const user = userEvent.setup()
+    renderApp('en', CLIENT)
+    await waitFor(() => expect(mergeCart).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'Add to media plan' }))
+    await waitFor(() => expect(addCartItem).toHaveBeenCalledWith(ID_A))
+    await openCart(user, /^Media plan/)
+    await user.click(
+      await screen.findByRole('button', { name: `Remove from media plan: ${marker.title}` }),
+    )
+    await waitFor(() => expect(removeCartItem).toHaveBeenCalledWith(ID_A))
+    expect(storedIds()).toEqual([])
+  })
+
+  it('does not call the API to remove an item that is not in the cart', async () => {
+    seed([item(ID_B, 'Only')])
+    vi.mocked(mergeCart).mockResolvedValue([item(ID_B, 'Only')])
+    const user = userEvent.setup()
+    renderApp('en', CLIENT)
+    await waitFor(() => expect(mergeCart).toHaveBeenCalled())
+
+    await openCart(user, /^Media plan/)
+    await user.click(await screen.findByRole('button', { name: 'Clear all' }))
+    await waitFor(() => expect(clearCart).toHaveBeenCalledTimes(1))
+    expect(removeCartItem).not.toHaveBeenCalled()
+  })
+
+  it('reloads the account cart and explains when a write fails', async () => {
+    vi.mocked(addCartItem).mockRejectedValue(
+      new ApiRequestError(409, 'full', undefined, null, 'CART_FULL'),
+    )
+    const user = userEvent.setup()
+    renderApp('en', CLIENT)
+    await waitFor(() => expect(mergeCart).toHaveBeenCalled())
+
+    await user.click(screen.getByRole('button', { name: 'Add to media plan' }))
+    await waitFor(() =>
+      expect(toastMock.error).toHaveBeenCalledWith(
+        'Your media plan could not be saved to your account',
+        { description: 'Your media plan is full' },
+      ),
+    )
+    await waitFor(() => expect(storedIds()).toEqual([]))
+    expect(fetchCart).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the local cart for vendors and visitors', async () => {
+    seed([item(ID_B, 'Local')])
+    const user = userEvent.setup()
+    renderApp('en', VENDOR)
+
+    await user.click(screen.getByRole('button', { name: 'Add to media plan' }))
+    expect(storedIds()).toEqual([ID_B, ID_A])
+    expect(mergeCart).not.toHaveBeenCalled()
+    expect(addCartItem).not.toHaveBeenCalled()
+  })
+
+  it('clears the browser copy when the client signs out', async () => {
+    vi.mocked(mergeCart).mockResolvedValue([item(ID_B, 'Mine')])
+    const view = renderApp('en', CLIENT)
+    await waitFor(() => expect(storedIds()).toEqual([ID_B]))
+
+    view.rerender(<Harness auth={SIGNED_OUT} />)
+    await waitFor(() => expect(storedIds()).toEqual([]))
+    expect(clearCart).not.toHaveBeenCalled()
   })
 })
