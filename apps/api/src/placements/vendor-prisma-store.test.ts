@@ -9,7 +9,7 @@ const OTHER = 'vendor-2'
 const ID = 'b1e0696a-54c3-4d40-84c4-f2a89326e680'
 const NOW = new Date('2026-10-28T09:00:00.000Z')
 
-const STATUSES: PlacementStatus[] = ['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'ARCHIVED']
+const STATUSES: PlacementStatus[] = ['ACTIVE', 'PENDING_REVIEW', 'INACTIVE', 'REJECTED', 'ARCHIVED']
 
 function setup(rows: Partial<FakeRow>[] = [{ id: ID, vendorId: OWNER, status: 'ACTIVE' }]) {
   const fake = createFakePrisma(rows)
@@ -50,18 +50,22 @@ describe('transitions (each row of the table in docs/listing-design.md)', () => 
     ['pause', 'PENDING_REVIEW', 'conflict'],
     ['pause', 'INACTIVE', 'conflict'],
     ['pause', 'ARCHIVED', 'conflict'],
+    ['pause', 'REJECTED', 'conflict'],
     ['resume', 'INACTIVE', 'ACTIVE'],
     ['resume', 'ACTIVE', 'conflict'],
     ['resume', 'PENDING_REVIEW', 'conflict'],
     ['resume', 'ARCHIVED', 'conflict'],
+    ['resume', 'REJECTED', 'conflict'],
     ['archive', 'ACTIVE', 'ARCHIVED'],
     ['archive', 'PENDING_REVIEW', 'ARCHIVED'],
     ['archive', 'INACTIVE', 'ARCHIVED'],
+    ['archive', 'REJECTED', 'ARCHIVED'],
     ['archive', 'ARCHIVED', 'conflict'],
     ['restore', 'ARCHIVED', 'PENDING_REVIEW'],
     ['restore', 'ACTIVE', 'conflict'],
     ['restore', 'PENDING_REVIEW', 'conflict'],
     ['restore', 'INACTIVE', 'conflict'],
+    ['restore', 'REJECTED', 'conflict'],
   ]
 
   it.each(cases)('%s from %s -> %s', async (action, from, expected) => {
@@ -136,6 +140,7 @@ describe('update', () => {
   it.each([
     ['ACTIVE', 'PENDING_REVIEW'],
     ['INACTIVE', 'PENDING_REVIEW'],
+    ['REJECTED', 'PENDING_REVIEW'],
     ['PENDING_REVIEW', 'PENDING_REVIEW'],
   ] as const)('an edit of %s leaves it %s', async (from, to) => {
     const { store } = setup([{ id: ID, vendorId: OWNER, status: from }])
@@ -244,6 +249,57 @@ describe('LED fields', () => {
     const { store } = setup([{ id: ID, vendorId: OWNER, status: 'ARCHIVED', type: 'BILLBOARD' }])
 
     expect(await store.update(OWNER, ID, led)).toEqual({ kind: 'conflict', status: 'ARCHIVED' })
+  })
+})
+
+describe('rejectionReason', () => {
+  const rejectedAt = (second: number) => new Date(Date.UTC(2026, 9, 2, 0, 0, second))
+
+  function withReasons(status: PlacementStatus) {
+    const fake = createFakePrisma(
+      [{ id: ID, vendorId: OWNER, status }],
+      [{ id: 'admin-1', email: 'admin@reclo.test' }],
+      [
+        { placementId: ID, action: 'REJECTED', reason: 'Old reason', createdAt: rejectedAt(1) },
+        { placementId: ID, action: 'APPROVED', createdAt: rejectedAt(2) },
+        { placementId: ID, action: 'REJECTED', reason: 'Latest reason', createdAt: rejectedAt(3) },
+      ],
+    )
+    return new PrismaVendorPlacementStore(fake.prisma, 'https://api.example.com', () => NOW)
+  }
+
+  it('carries the latest rejection while the listing is REJECTED, on find and list', async () => {
+    const store = withReasons('REJECTED')
+
+    expect((await store.find(OWNER, ID))?.rejectionReason).toBe('Latest reason')
+    const listed = await store.list(OWNER, { page: 1, pageSize: 20 })
+    expect(listed.placements[0]?.rejectionReason).toBe('Latest reason')
+  })
+
+  it.each(['PENDING_REVIEW', 'ACTIVE', 'INACTIVE'] as const)(
+    'is null once the listing is %s, so a resubmitted listing shows no stale reason',
+    async (status) => {
+      const store = withReasons(status)
+
+      expect((await store.find(OWNER, ID))?.rejectionReason).toBeNull()
+    },
+  )
+
+  it('goes back to review and drops the reason when the vendor edits a rejected listing', async () => {
+    const store = withReasons('REJECTED')
+
+    const result = await store.update(OWNER, ID, { title: 'Fixed the problem' })
+
+    expect(result.kind === 'ok' && result.placement.status).toBe('PENDING_REVIEW')
+    expect(result.kind === 'ok' && result.placement.rejectionReason).toBeNull()
+  })
+
+  it('a photo change on a rejected listing is a resubmission too', async () => {
+    const store = withReasons('REJECTED')
+
+    const result = await store.addPhoto(OWNER, ID, '/uploads/placements/x/a.jpg')
+
+    expect(result.kind === 'ok' && result.placement.status).toBe('PENDING_REVIEW')
   })
 })
 

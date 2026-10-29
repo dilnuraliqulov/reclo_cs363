@@ -4,6 +4,7 @@ import { createPrismaAuthStore } from './auth/prisma-store'
 import { checkDatabase, prisma } from './db'
 import { env } from './env'
 import { createPrismaInquiryStore } from './inquiries/prisma-store'
+import { PrismaAdminPlacementStore } from './placements/admin-prisma-store'
 import { DiskPhotoStorage } from './placements/photo-storage'
 import { PrismaPlacementStore } from './placements/prisma-store'
 import { PrismaVendorPlacementStore } from './placements/vendor-prisma-store'
@@ -16,6 +17,7 @@ const app = createApp({
   authStore: createPrismaAuthStore(prisma),
   placementStore: new PrismaPlacementStore(prisma, env.API_PUBLIC_URL),
   vendorPlacementStore: new PrismaVendorPlacementStore(prisma, env.API_PUBLIC_URL),
+  adminPlacementStore: new PrismaAdminPlacementStore(prisma, env.API_PUBLIC_URL),
   photoStorage: new DiskPhotoStorage(uploadsDir),
   uploadsDir,
   inquiryStore: createPrismaInquiryStore(prisma),
