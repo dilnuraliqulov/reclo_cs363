@@ -31,13 +31,16 @@ export const mapBoundsQuerySchema = z
     message: VALIDATION_CODES.lngOrder,
     path: ['minLng'],
   })
-  .refine((data) => {
-    if (data.ledDurationSeconds === undefined && data.ledPlaysPerDay === undefined) return true
-    return data.type === 'LED_SCREEN'
-  }, {
-    message: 'LED attributes can only be filtered for LED_SCREEN placements',
-    path: ['type'],
-  })
+  .refine(
+    (data) => {
+      if (data.ledDurationSeconds === undefined && data.ledPlaysPerDay === undefined) return true
+      return data.type === 'LED_SCREEN'
+    },
+    {
+      message: 'LED attributes can only be filtered for LED_SCREEN placements',
+      path: ['type'],
+    },
+  )
 export type MapBoundsQuery = z.infer<typeof mapBoundsQuerySchema>
 
 export const placementMarkerSchema = z.object({

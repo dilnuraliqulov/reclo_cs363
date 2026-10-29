@@ -127,9 +127,7 @@ export function PlacementFilters({
             type="number"
             placeholder="LED duration (sec)"
             value={filters.ledDurationSeconds}
-            onChange={(e) =>
-              onChange((prev) => ({ ...prev, ledDurationSeconds: e.target.value }))
-            }
+            onChange={(e) => onChange((prev) => ({ ...prev, ledDurationSeconds: e.target.value }))}
             className="h-8 text-xs bg-background"
             min={1}
           />
