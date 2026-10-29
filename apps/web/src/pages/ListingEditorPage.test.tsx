@@ -409,6 +409,16 @@ describe('ListingEditorPage: edit', () => {
       expect(await screen.findByText(copy)).toBeInTheDocument()
     })
 
+    it('shows the admin’s reason on a rejected listing and says saving resubmits it', async () => {
+      stubEditApi({ status: 'REJECTED', rejectionReason: 'The photo is too dark' })
+      renderApp(EDIT)
+
+      expect(
+        await screen.findByText(/Fix the issues below and save to send it for review again./),
+      ).toBeInTheDocument()
+      expect(screen.getByText(/The photo is too dark/)).toBeInTheDocument()
+    })
+
     it('has the same warning in Uzbek and Russian', async () => {
       stubEditApi({ status: 'ACTIVE' })
       renderApp(EDIT, 'ru')
