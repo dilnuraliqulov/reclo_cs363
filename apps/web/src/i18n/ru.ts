@@ -112,4 +112,6 @@ export const ru = {
   'validation.cursor.invalid': 'Неверный курсор',
   'validation.bounds.latOrder': 'minLat должен быть не больше maxLat',
   'validation.bounds.lngOrder': 'minLng должен быть не больше maxLng',
+  'validation.companyName.required': 'Введите название компании',
+  'validation.companyName.tooLong': 'Название компании должно быть не длиннее {max} символов',
 } as const

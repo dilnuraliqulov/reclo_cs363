@@ -28,7 +28,7 @@ const INVALID_CREDENTIALS = 'Invalid email or password'
 // Verified against when the email is unknown, so both login failures cost about the same time.
 const dummyHash = argon2.hash('reclo-timing-equalizer')
 
-function validationError(error: z.ZodError): ApiError {
+export function validationError(error: z.ZodError): ApiError {
   return {
     error: 'Invalid input',
     code: 'INVALID_INPUT',

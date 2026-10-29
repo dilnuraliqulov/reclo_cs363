@@ -43,6 +43,8 @@ export const VALIDATION_CODES = {
   cursorInvalid: 'validation.cursor.invalid',
   latOrder: 'validation.bounds.latOrder',
   lngOrder: 'validation.bounds.lngOrder',
+  companyNameRequired: 'validation.companyName.required',
+  companyNameTooLong: 'validation.companyName.tooLong',
 } as const
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)

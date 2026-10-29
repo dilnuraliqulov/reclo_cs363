@@ -108,4 +108,6 @@ export const uz = {
   'validation.cursor.invalid': 'Kursor xato',
   'validation.bounds.latOrder': "minLat maxLat dan katta bo'lmasligi kerak",
   'validation.bounds.lngOrder': "minLng maxLng dan katta bo'lmasligi kerak",
+  'validation.companyName.required': 'Kompaniya nomini kiriting',
+  'validation.companyName.tooLong': 'Kompaniya nomi {max} belgidan oshmasligi kerak',
 } as const

@@ -1,4 +1,4 @@
-import type { PublicUser } from '@reclo/shared'
+import type { PublicUser, VendorSummary } from '@reclo/shared'
 
 export interface StoredUser extends PublicUser {
   passwordHash: string
@@ -10,7 +10,7 @@ export interface StoredSession {
   user: PublicUser
 }
 
-/** Thrown by `createClient` when the email is already registered. */
+/** Thrown by `createClient` and `createVendor` when the email is already registered. */
 export class EmailTakenError extends Error {
   constructor() {
     super('Email is already registered')
@@ -25,4 +25,13 @@ export interface AuthStore {
   createSession: (input: { userId: string; tokenHash: string; expiresAt: Date }) => Promise<void>
   findSessionByTokenHash: (tokenHash: string) => Promise<StoredSession | null>
   deleteSessionByTokenHash: (tokenHash: string) => Promise<void>
+  /** Creates a VENDOR on behalf of an admin. Throws `EmailTakenError` on a duplicate email. */
+  createVendor: (input: {
+    email: string
+    passwordHash: string
+    companyName: string
+    createdById: string
+  }) => Promise<VendorSummary>
+  /** Vendors, newest first, at most `limit` of them. */
+  listVendors: (limit: number) => Promise<VendorSummary[]>
 }

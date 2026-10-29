@@ -2,6 +2,7 @@ import type { ApiError, HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { type ErrorRequestHandler, type Express } from 'express'
+import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
@@ -71,6 +72,8 @@ export function createApp({
       secureCookies,
     }),
   )
+
+  app.use('/api/admin', createAdminRouter({ store: authStore, requireAuth }))
 
   if (placementStore) {
     app.use('/api/placements', createPlacementRouter({ store: placementStore }))

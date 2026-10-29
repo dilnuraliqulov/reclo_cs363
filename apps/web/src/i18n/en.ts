@@ -114,4 +114,6 @@ export const en = {
   'validation.cursor.invalid': 'Invalid cursor',
   'validation.bounds.latOrder': 'minLat must be less than or equal to maxLat',
   'validation.bounds.lngOrder': 'minLng must be less than or equal to maxLng',
+  'validation.companyName.required': 'Enter the company name',
+  'validation.companyName.tooLong': 'Company name must be at most {max} characters',
 } as const

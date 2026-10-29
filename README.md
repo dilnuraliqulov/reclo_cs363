@@ -42,6 +42,15 @@ Then open:
 
 The defaults in the `.env.example` files work as they are for local development.
 
+Sign-up only creates client accounts, and vendor accounts are created by an admin. Create the first
+admin from the command line (PowerShell: set the variables with `$env:ADMIN_EMAIL = '...'` first):
+
+```bash
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='choose-a-long-one' pnpm --filter @reclo/api admin:create
+```
+
+It refuses an email that is already registered and never changes an existing account.
+
 ## Ports
 
 | Service    | Port | Notes                                                           |

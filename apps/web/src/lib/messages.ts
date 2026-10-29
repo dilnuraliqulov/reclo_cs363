@@ -1,4 +1,5 @@
 import {
+  COMPANY_NAME_MAX_LENGTH,
   MESSAGE_MAX_LENGTH,
   MESSAGE_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
@@ -20,6 +21,7 @@ const VALIDATION_VALUES: Partial<Record<MessageKey, Values>> = {
   'validation.password.tooLong': { max: PASSWORD_MAX_LENGTH },
   'validation.message.tooShort': { min: MESSAGE_MIN_LENGTH },
   'validation.message.tooLong': { max: MESSAGE_MAX_LENGTH },
+  'validation.companyName.tooLong': { max: COMPANY_NAME_MAX_LENGTH },
 }
 
 /**

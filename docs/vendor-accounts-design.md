@@ -117,7 +117,7 @@ keep passing stubs and need no database.
 
 ## Bootstrap admin script
 
-`apps/api/scripts/create-admin.ts`, run as `pnpm --filter @reclo/api admin:create` with
+`apps/api/src/scripts/create-admin.ts` (logic in `src/admin/bootstrap.ts`), run as `pnpm --filter @reclo/api admin:create` with
 `ADMIN_EMAIL` and `ADMIN_PASSWORD` set. It validates both with the shared schemas, hashes the
 password, and creates an `ADMIN`. If the email already exists it exits non-zero without changing the
 row — re-running the script must not reset a live admin's password or promote a client. The README
