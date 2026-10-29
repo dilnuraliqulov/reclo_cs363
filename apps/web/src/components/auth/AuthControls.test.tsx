@@ -70,3 +70,30 @@ describe('AuthControls inquiry history link', () => {
     expect(screen.queryByRole('link', { name: 'My inquiries' })).not.toBeInTheDocument()
   })
 })
+
+describe('AuthControls vendor link', () => {
+  it('offers a vendor My listings, and no inquiry history', async () => {
+    stubSession('VENDOR')
+    renderControls()
+
+    const link = await screen.findByRole('link', { name: 'My listings' })
+    expect(link).toHaveAttribute('href', '/vendor/placements')
+    expect(screen.queryByRole('link', { name: 'My inquiries' })).not.toBeInTheDocument()
+  })
+
+  it.each<Role>(['CLIENT', 'ADMIN'])('does not offer %s My listings', async (role) => {
+    stubSession(role)
+    renderControls()
+
+    await screen.findByText(`${role.toLowerCase()}@example.com`)
+    expect(screen.queryByRole('link', { name: 'My listings' })).not.toBeInTheDocument()
+  })
+
+  it('does not offer a signed-out visitor My listings', async () => {
+    stubSession(null)
+    renderControls()
+
+    await screen.findByRole('link', { name: 'Sign in' })
+    expect(screen.queryByRole('link', { name: 'My listings' })).not.toBeInTheDocument()
+  })
+})

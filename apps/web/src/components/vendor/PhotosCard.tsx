@@ -60,14 +60,13 @@ export function PhotosCard({ placement, disabled, onChange, onSettled }: PhotosC
   async function uploadAll(files: File[]) {
     if (!placement) return
     const queue = files.map((file) => ({ file, key: nextKey.current++ }))
-    setAttempts((current) => [
-      ...current.filter((attempt) => attempt.state !== 'failed'),
-      ...queue.map(({ file, key }) => ({
-        key,
-        name: file.name,
-        state: 'uploading' as const,
-      })),
-    ])
+    // Built before the workers start: they empty `queue`, and React runs a state updater later.
+    const started: Attempt[] = queue.map(({ file, key }) => ({
+      key,
+      name: file.name,
+      state: 'uploading',
+    }))
+    setAttempts((current) => [...current, ...started])
 
     const worker = async () => {
       for (let item = queue.shift(); item; item = queue.shift()) {
