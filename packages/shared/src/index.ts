@@ -6,3 +6,5 @@ export * from './inquiry'
 export * from './locale'
 export * from './placement'
 export * from './moderation'
+
+export * from './vendor'

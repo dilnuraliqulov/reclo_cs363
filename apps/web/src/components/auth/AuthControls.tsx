@@ -30,9 +30,14 @@ export function AuthControls() {
           </Button>
         )}
         {user.role === 'ADMIN' && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
-            <Link to="/admin/moderation">{t('nav.moderation')}</Link>
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+              <Link to="/admin/moderation">{t('nav.moderation')}</Link>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+              <Link to="/admin/vendors">{t('auth.adminVendors')}</Link>
+            </Button>
+          </>
         )}
         <span className="hidden text-xs sm:inline">
           {t('auth.signedInAs')} <span className="font-medium">{user.email}</span>

@@ -107,6 +107,17 @@ const WRITE_ROUTES: WriteRoute[] = [
   },
   {
     method: 'post',
+    pattern: '/api/admin/vendors',
+    body: 'json',
+    role: 'ADMIN',
+    valid: {
+      email: 'new-vendor@example.com',
+      companyName: 'Silk Road Media',
+      password: 'correct-horse-battery',
+    },
+  },
+  {
+    method: 'post',
     pattern: '/api/admin/placements/:id/approve',
     body: 'json',
     role: 'ADMIN',
@@ -127,6 +138,7 @@ const MOUNTS = [
   '/api/placements',
   '/api/vendor/placements',
   '/api/admin/placements',
+  '/api/admin/vendors',
   '/api/inquiries',
 ]
 
@@ -181,6 +193,8 @@ function setup(limit = 1000) {
     createSession: spy(memory.store.createSession),
     findSessionByTokenHash: memory.store.findSessionByTokenHash,
     deleteSessionByTokenHash: spy(memory.store.deleteSessionByTokenHash),
+    createVendor: spy(memory.store.createVendor),
+    listVendors: memory.store.listVendors,
   }
   const notFound = async () => ({ kind: 'not_found' as const })
   const vendorStore: VendorPlacementStore = {
@@ -392,6 +406,44 @@ describe.each(jsonRoutes)('$method $pattern validation', (route) => {
     // The stores are stubs, so a 404/409/401 is fine; a 400 would mean the table is wrong.
     expect(res.status).not.toBe(400)
     expect(res.status).toBeLessThan(500)
+  })
+})
+
+describe('POST /api/admin/vendors mass assignment', () => {
+  const body = {
+    email: 'mass@example.com',
+    companyName: 'Mass Media',
+    password: 'correct-horse-battery',
+  }
+
+  it.each(['ADMIN', 'CLIENT', 'VENDOR'])('ignores a role of %s in the body', async (role) => {
+    const ctx = setup()
+    const res = await request(ctx.app)
+      .post('/api/admin/vendors')
+      .set('Cookie', await ctx.cookieFor('ADMIN'))
+      .send({ ...body, role, createdById: 'someone-else' })
+
+    expect(res.status).toBe(201)
+    expect(JSON.stringify(res.body)).not.toMatch(/passw|hash/i)
+    // The creator is the signed-in admin, whatever the body claims.
+    expect(JSON.stringify(ctx.recorded)).not.toContain('someone-else')
+    const stored = await request(ctx.app)
+      .get('/api/admin/vendors')
+      .set('Cookie', await ctx.cookieFor('ADMIN'))
+    expect(stored.body.vendors).toHaveLength(1)
+    const login = await request(ctx.app)
+      .post('/api/auth/login')
+      .send({ email: body.email, password: body.password })
+    expect(login.body.user.role).toBe('VENDOR')
+  })
+
+  it.each(['CLIENT', 'VENDOR'] as const)('answers a %s with 403 FORBIDDEN', async (role) => {
+    const ctx = setup()
+    const res = await request(ctx.app)
+      .post('/api/admin/vendors')
+      .set('Cookie', await ctx.cookieFor(role))
+      .send(body)
+    expectStandardError(res, 403, 'FORBIDDEN')
   })
 })
 
