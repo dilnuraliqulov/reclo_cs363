@@ -52,28 +52,36 @@ header). The first admin comes from `pnpm db:seed-admin`; see "Admin account" be
 | Web (Vite) | 5173 |                                                                 |
 | API        | 4000 | Change with `PORT` in `apps/api/.env`                           |
 | PostgreSQL | 5435 | Host port. Chosen so it does not clash with a Postgres on 5432. |
+| Mailpit    | 8026 | Inbox for every email the API sends locally (SMTP on 1026).     |
 
 The database runs in the `reclo-cs363-postgres` container with user, password, and database all set
 to `reclo`. These are local development credentials only.
+
+## Emails
+
+Vendors get an email for each new inquiry. Locally, `pnpm db:up` also starts
+[Mailpit](https://mailpit.axllent.org/), which catches the emails so nothing reaches a real inbox.
+Read them at <http://localhost:8026>. Without `SMTP_URL` in `apps/api/.env`, the API prints emails to
+its console instead.
 
 ## Scripts
 
 Run these from the repository root.
 
-| Command              | What it does                                               |
-| -------------------- | ---------------------------------------------------------- |
-| `pnpm dev`           | Runs the web app and the API together, with reload         |
-| `pnpm build`         | Builds every package                                       |
-| `pnpm lint`          | Runs ESLint and checks formatting with Prettier            |
-| `pnpm format`        | Formats all files with Prettier                            |
-| `pnpm typecheck`     | Type-checks every package                                  |
-| `pnpm test`          | Runs the Vitest suites in web and api                      |
-| `pnpm db:up`         | Starts the Docker PostgreSQL and waits until it is healthy |
-| `pnpm db:down`       | Stops the Docker PostgreSQL (data is kept)                 |
-| `pnpm db:migrate`    | Creates and applies Prisma migrations                      |
-| `pnpm db:generate`   | Regenerates the Prisma client                              |
-| `pnpm db:studio`     | Opens Prisma Studio                                        |
-| `pnpm db:seed-admin` | Creates the first admin account (see below)                |
+| Command              | What it does                                              |
+| -------------------- | --------------------------------------------------------- |
+| `pnpm dev`           | Runs the web app and the API together, with reload        |
+| `pnpm build`         | Builds every package                                      |
+| `pnpm lint`          | Runs ESLint and checks formatting with Prettier           |
+| `pnpm format`        | Formats all files with Prettier                           |
+| `pnpm typecheck`     | Type-checks every package                                 |
+| `pnpm test`          | Runs the Vitest suites in web and api                     |
+| `pnpm db:up`         | Starts Docker PostgreSQL and Mailpit, waits until healthy |
+| `pnpm db:down`       | Stops them (database data is kept)                        |
+| `pnpm db:migrate`    | Creates and applies Prisma migrations                     |
+| `pnpm db:generate`   | Regenerates the Prisma client                             |
+| `pnpm db:studio`     | Opens Prisma Studio                                       |
+| `pnpm db:seed-admin` | Creates the first admin account (see below)               |
 
 ## Admin account
 

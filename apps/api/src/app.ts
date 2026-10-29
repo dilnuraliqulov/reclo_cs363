@@ -6,6 +6,7 @@ import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import type { Mailer } from './email/mailer'
 import {
   errorHandler,
   JSON_BODY_LIMIT,
@@ -40,6 +41,10 @@ export interface AppDependencies {
   uploadsDir?: string
   /** Inquiries persistence. */
   inquiryStore?: InquiryStore
+  /** Sends the vendor an email on each new inquiry. Omit to send none (most tests). */
+  mailer?: Mailer
+  /** Origin of the web app, for links in emails. Defaults to http://localhost:5173. */
+  webPublicUrl?: string
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
   corsOrigin?: string
   /** Clock, injectable for session expiry tests. */
@@ -61,6 +66,8 @@ export function createApp({
   authStore,
   placementStore,
   inquiryStore,
+  mailer,
+  webPublicUrl = 'http://localhost:5173',
   vendorPlacementStore,
   adminPlacementStore,
   photoStorage,
@@ -157,6 +164,8 @@ export function createApp({
         requireAuth,
         now,
         rateLimitMax: inquiryRateLimitMax,
+        mailer,
+        webPublicUrl,
       }),
     )
   }

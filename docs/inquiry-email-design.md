@@ -56,8 +56,9 @@ email is the vendor's **only** view of the inquiry, which drives most of the dec
 - **SMTP via nodemailer in real runs, the console when unconfigured.** `SMTP_URL` selects
   `SmtpMailer`. When it is unset, `ConsoleMailer` prints the email to stdout and the API warns once at
   startup, so a fresh clone works with no mail setup. For local testing, `docker-compose.yml` gains
-  [Mailpit](https://mailpit.axllent.org/), which catches everything sent to `smtp://localhost:1025`
-  and shows it at `http://localhost:8025`. nodemailer has no install script, so `allowBuilds` does
+  [Mailpit](https://mailpit.axllent.org/), which catches everything sent to `smtp://localhost:1026`
+  and shows it at `http://localhost:8026` (one above Mailpit's default ports, so it does not clash
+  with another project's Mailpit, the same reasoning as Postgres on 5435). nodemailer has no install script, so `allowBuilds` does
   not change.
 - **Spam is bounded by rules that already exist.** A vendor gets at most one email per open inquiry
   per client per placement (the 14-day duplicate rule), and the inquiry rate limiter caps any one IP
@@ -116,7 +117,7 @@ export interface Mailer {
 
 | Variable         | Default                     | Meaning                                                      |
 | ---------------- | --------------------------- | ------------------------------------------------------------ |
-| `SMTP_URL`       | unset (console mailer)      | e.g. `smtp://localhost:1025` (Mailpit), `smtps://user:pass@` |
+| `SMTP_URL`       | unset (console mailer)      | e.g. `smtp://localhost:1026` (Mailpit), `smtps://user:pass@` |
 | `MAIL_FROM`      | `Reclo <no-reply@reclo.uz>` | The From header                                              |
 | `WEB_PUBLIC_URL` | `CORS_ORIGIN`               | Origin of the web app, for links in the email                |
 

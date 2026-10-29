@@ -11,8 +11,10 @@ import {
 import { Router, type RequestHandler } from 'express'
 import { rateLimit } from 'express-rate-limit'
 import { requireRole } from '../auth/middleware'
+import type { Mailer } from '../email/mailer'
 import { sendValidationError } from '../http'
 import { decodeCursor, encodeCursor, type InquiryCursor } from './cursor'
+import { notifyVendorOfInquiry } from './notify-vendor'
 import { OpenInquiryExistsError, type InquiryStore } from './store'
 
 export interface InquiryRouterOptions {
@@ -21,6 +23,10 @@ export interface InquiryRouterOptions {
   now: () => Date
   /** Max inquiry submissions per IP per 15 minutes. */
   rateLimitMax: number
+  /** Emails the vendor about each new inquiry (KAN-17). Without it no email is sent. */
+  mailer?: Mailer
+  /** Origin of the web app, for the listing link in the email. */
+  webPublicUrl: string
 }
 
 const DUPLICATE_ERROR = 'You already have an open inquiry for this placement'
@@ -39,6 +45,8 @@ export function createInquiryRouter({
   requireAuth,
   now,
   rateLimitMax,
+  mailer,
+  webPublicUrl,
 }: InquiryRouterOptions): Router {
   const router = Router()
 
@@ -154,6 +162,12 @@ export function createInquiryRouter({
           durationMonths: parsed.data.durationMonths ?? null,
         })
         res.status(201).json({ inquiry } satisfies InquiryResponse)
+
+        // Not awaited, and it never rejects: a slow or failing SMTP server must not turn a saved
+        // inquiry into an error, which the client would retry straight into the duplicate 409.
+        if (mailer) {
+          void notifyVendorOfInquiry({ mailer, inquiry, placement, webPublicUrl })
+        }
       } catch (error) {
         if (error instanceof OpenInquiryExistsError) {
           res

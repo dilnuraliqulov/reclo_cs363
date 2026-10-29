@@ -45,7 +45,17 @@ function createMemoryInquiryStore(seed: SeededInquiry[] = []) {
 
   const store: InquiryStore = {
     async findActivePlacement(id) {
-      return id === PLACEMENT_ID ? { id: PLACEMENT_ID, vendorId: VENDOR_ID } : null
+      return id === PLACEMENT_ID
+        ? {
+            id: PLACEMENT_ID,
+            vendorId: VENDOR_ID,
+            title: 'Amir Temur Billboard',
+            address: 'Amir Temur shoh ko‘chasi 1',
+            city: 'Tashkent',
+            type: 'BILLBOARD',
+            vendor: { email: 'vendor@example.com', companyName: 'Outdoor Media' },
+          }
+        : null
     },
 
     async findOpenInquiry({ clientId, placementId }) {

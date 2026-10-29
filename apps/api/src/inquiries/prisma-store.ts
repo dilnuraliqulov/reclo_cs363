@@ -71,7 +71,17 @@ export function createPrismaInquiryStore(prisma: PrismaClient): InquiryStore {
     findActivePlacement: (id) =>
       prisma.placement.findFirst({
         where: { id, status: 'ACTIVE' },
-        select: { id: true, vendorId: true },
+        // The vendor rides along with the check the route makes anyway, so the email costs no extra
+        // round trip.
+        select: {
+          id: true,
+          vendorId: true,
+          title: true,
+          address: true,
+          city: true,
+          type: true,
+          vendor: { select: { email: true, companyName: true } },
+        },
       }),
 
     findOpenInquiry: ({ clientId, placementId }) =>
