@@ -40,4 +40,17 @@ describe('LanguageSwitcher', () => {
 
     expect(screen.getByRole('combobox')).toHaveAccessibleName('Language')
   })
+
+  it('puts the code inside a SelectValue, which Radix needs to place the open list', () => {
+    // A structural assertion, not a behavioural one, and deliberately so. Radix positions the
+    // open list by measuring the trigger's value node; with the code written straight into the
+    // trigger that node is absent, `position()` returns early, and the list mounts unpositioned
+    // and invisible — the trigger looks dead in a browser. jsdom has no layout, so every
+    // behavioural test here passed while that bug was live. This is the part a test can hold.
+    renderWithLocale(<LanguageSwitcher />, 'uz')
+
+    const value = screen.getByRole('combobox').querySelector('[data-slot="select-value"]')
+    expect(value).not.toBeNull()
+    expect(value).toHaveTextContent('UZ')
+  })
 })
