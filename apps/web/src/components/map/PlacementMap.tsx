@@ -10,23 +10,15 @@ import {
   formatPlacementType,
   getPlacementTypeColor,
 } from '@/lib/placements'
+import { DEFAULT_ZOOM, TASHKENT_CENTER, UZBEKISTAN_BOUNDS } from '@/lib/map-config'
 import { cn } from '@/lib/utils'
 
-// Default center: Tashkent, Uzbekistan
-const TASHKENT_CENTER: L.LatLngTuple = [41.311081, 69.279737]
-const DEFAULT_ZOOM = 12
 const BOUNDS_DEBOUNCE_MS = 300
 
 // Nearby pins collapse into a counted cluster until the map is zoomed in far
 // enough that individual placements stop overlapping.
 const CLUSTER_RADIUS_PX = 60
 const DISABLE_CLUSTERING_AT_ZOOM = 17
-
-// Uzbekistan bounds clamping
-const UZBEKISTAN_BOUNDS: L.LatLngBoundsLiteral = [
-  [37.0, 56.0], // South-West
-  [45.6, 73.2], // North-East
-]
 
 export type MapBounds = Pick<MapBoundsQuery, 'minLat' | 'maxLat' | 'minLng' | 'maxLng'>
 
