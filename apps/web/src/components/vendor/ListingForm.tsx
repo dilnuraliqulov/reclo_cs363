@@ -49,6 +49,8 @@ const FIELD_NAMES: FieldName[] = [
   'width',
   'height',
   'lighting',
+  'ledDurationSeconds',
+  'ledPlaysPerDay',
 ]
 
 const EMPTY_VALUES: CreatePlacementFormValues = {
@@ -63,6 +65,8 @@ const EMPTY_VALUES: CreatePlacementFormValues = {
   width: '',
   height: '',
   lighting: false,
+  ledDurationSeconds: '',
+  ledPlaysPerDay: '',
 }
 
 function valuesFrom(placement: VendorPlacement): CreatePlacementFormValues {
@@ -78,6 +82,9 @@ function valuesFrom(placement: VendorPlacement): CreatePlacementFormValues {
     width: placement.width === null ? '' : String(placement.width),
     height: placement.height === null ? '' : String(placement.height),
     lighting: placement.lighting,
+    ledDurationSeconds:
+      placement.ledDurationSeconds === null ? '' : String(placement.ledDurationSeconds),
+    ledPlaysPerDay: placement.ledPlaysPerDay === null ? '' : String(placement.ledPlaysPerDay),
   }
 }
 
@@ -98,6 +105,8 @@ const resolver: Resolver<CreatePlacementFormValues, unknown, CreatePlacementRequ
       description: blankToUndefined(values.description) as string | undefined,
       width: blankToUndefined(values.width),
       height: blankToUndefined(values.height),
+      ledDurationSeconds: blankToUndefined(values.ledDurationSeconds),
+      ledPlaysPerDay: blankToUndefined(values.ledPlaysPerDay),
     },
     context,
     options,
@@ -142,11 +151,23 @@ export function ListingForm({
 
   const save = useMutation({
     mutationFn: async (data: CreatePlacementRequest) => {
-      if (!placement) return createVendorPlacement(data)
+      if (!placement) {
+        if (data.type === 'LED_SCREEN') return createVendorPlacement(data)
+        return createVendorPlacement({
+          ...data,
+          ledDurationSeconds: undefined,
+          ledPlaysPerDay: undefined,
+        })
+      }
       // Only what changed: an untouched field is not re-sent, so it cannot re-trigger moderation.
       const patch: Record<string, unknown> = {}
       for (const key of Object.keys(dirtyFields) as (keyof CreatePlacementRequest)[]) {
         if (data[key] !== undefined) patch[key] = data[key]
+      }
+      // LED values only travel with an LED screen; the server clears them when the type changes away.
+      if (data.type !== 'LED_SCREEN') {
+        delete patch.ledDurationSeconds
+        delete patch.ledPlaysPerDay
       }
       return updateVendorPlacement(placement.id, patch as UpdatePlacementRequest)
     },
@@ -192,6 +213,8 @@ export function ListingForm({
     return () => window.removeEventListener('beforeunload', warn)
   }, [isDirty, save.isPending])
 
+  const type = useWatch({ control, name: 'type' })
+  const isLed = type === 'LED_SCREEN'
   const description = useWatch({ control, name: 'description' }) ?? ''
   const price = Number(useWatch({ control, name: 'pricePerMonth' }))
   const latitude = useWatch({ control, name: 'latitude' }) as number | undefined
@@ -199,6 +222,13 @@ export function ListingForm({
 
   const locked = save.isPending || archived
   const nearLimit = description.length >= LISTING_LIMITS.descriptionMax * 0.9
+
+  function clearLedValues() {
+    for (const name of ['ledDurationSeconds', 'ledPlaysPerDay'] as const) {
+      setValue(name, '', { shouldDirty: true })
+      form.clearErrors(name)
+    }
+  }
 
   function pickLocation(nextLatitude: number, nextLongitude: number) {
     const options = { shouldDirty: true, shouldValidate: true }
@@ -244,7 +274,10 @@ export function ListingForm({
                     <FieldLabel htmlFor="listing-type">{t('listing.field.type')}</FieldLabel>
                     <Select
                       value={field.value ?? ''}
-                      onValueChange={field.onChange}
+                      onValueChange={(next) => {
+                        field.onChange(next)
+                        if (next !== 'LED_SCREEN') clearLedValues()
+                      }}
                       disabled={locked}
                     >
                       <SelectTrigger
@@ -268,6 +301,24 @@ export function ListingForm({
                   </Field>
                 )}
               />
+              {isLed && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <LedField
+                    control={control}
+                    name="ledDurationSeconds"
+                    id="listing-led-duration"
+                    label={t('listing.field.ledDurationSeconds')}
+                    help={t('listing.field.ledDurationSecondsHelp')}
+                  />
+                  <LedField
+                    control={control}
+                    name="ledPlaysPerDay"
+                    id="listing-led-plays"
+                    label={t('listing.field.ledPlaysPerDay')}
+                    help={t('listing.field.ledPlaysPerDayHelp')}
+                  />
+                </div>
+              )}
               <Controller
                 name="description"
                 control={control}
@@ -562,5 +613,41 @@ function CoordinateInput({
       />
       {invalid && <FieldError errors={[error ?? {}]} />}
     </Field>
+  )
+}
+
+function LedField({
+  control,
+  name,
+  id,
+  label,
+  help,
+}: {
+  control: Control<CreatePlacementFormValues, unknown, CreatePlacementRequest>
+  name: 'ledDurationSeconds' | 'ledPlaysPerDay'
+  id: string
+  label: string
+  help: string
+}) {
+  const { fieldError } = useMessages()
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={id}>{label}</FieldLabel>
+          <Input
+            {...field}
+            id={id}
+            inputMode="numeric"
+            aria-invalid={fieldState.invalid}
+            value={String(field.value ?? '')}
+          />
+          <FieldDescription>{help}</FieldDescription>
+          {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+        </Field>
+      )}
+    />
   )
 }
