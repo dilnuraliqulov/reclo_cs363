@@ -24,6 +24,11 @@ export function AuthControls() {
             <Link to="/inquiries">{t('auth.myInquiries')}</Link>
           </Button>
         )}
+        {user.role === 'VENDOR' && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+            <Link to="/vendor/placements">{t('auth.myListings')}</Link>
+          </Button>
+        )}
         <span className="hidden text-xs sm:inline">
           {t('auth.signedInAs')} <span className="font-medium">{user.email}</span>
         </span>
