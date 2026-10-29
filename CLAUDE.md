@@ -52,10 +52,10 @@ setup steps are in `README.md`.
 
 Project key: `KAN`.
 
-Current task: **KAN-10 "Vendors create and manage listings"**. Do its subtasks in this
-order:
+Current task: **KAN-7 "Clients add multiple placements to a media plan cart"**
+(`docs/media-plan-cart-design.md`). Do its subtasks in this order:
 
-1. KAN-42 Design
-2. KAN-43 Backend
-3. KAN-44 Frontend
-4. KAN-45 Testing
+1. KAN-30 Design
+2. KAN-31 Backend
+3. KAN-32 Frontend
+4. KAN-33 Testing
