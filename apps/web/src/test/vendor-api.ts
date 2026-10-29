@@ -25,6 +25,8 @@ export function vendorPlacement(overrides: Partial<VendorPlacement> = {}): Vendo
     width: 6,
     height: 3,
     lighting: true,
+    ledDurationSeconds: null,
+    ledPlaysPerDay: null,
     tier: 'SILVER',
     photos: [],
     vendorId: 'vendor-1',
