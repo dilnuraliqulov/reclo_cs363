@@ -6,6 +6,8 @@ export interface CartContextValue {
   items: readonly CartItem[]
   count: number
   isPersistent: boolean
+  /** True for a signed-in client: the plan is saved on the account (KAN-32). */
+  isAccount: boolean
   has: (id: string) => boolean
   add: CartStore['add']
   remove: CartStore['remove']

@@ -104,6 +104,8 @@ export const ru = {
   'cart.open': 'Медиаплан',
   'cart.title': 'Ваш медиаплан',
   'cart.subtitle': 'Выбранные вами места. Они хранятся на этом устройстве.',
+  'cart.subtitleAccount': 'Выбранные вами места. Они сохранены в вашем аккаунте.',
+  'cart.syncFailed': 'Не удалось сохранить медиаплан в аккаунте',
   'cart.items': {
     one: '{count} место',
     few: '{count} места',

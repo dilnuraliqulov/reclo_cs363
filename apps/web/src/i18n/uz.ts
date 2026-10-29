@@ -100,6 +100,8 @@ export const uz = {
   'cart.open': 'Media reja',
   'cart.title': 'Sizning media rejangiz',
   'cart.subtitle': 'Tanlab olgan joylaringiz. Ular shu qurilmada saqlanadi.',
+  'cart.subtitleAccount': 'Tanlab olgan joylaringiz. Ular akkauntingizda saqlanadi.',
+  'cart.syncFailed': "Media rejani akkauntingizga saqlab bo'lmadi",
   'cart.items': { one: '{count} ta joy', other: '{count} ta joy' },
   'cart.empty': "Media rejangiz bo'sh",
   'cart.emptyBody': "Xaritadan billboard yoki LED ekranni oching va bu yerga qo'shing.",
