@@ -149,6 +149,50 @@ describe('AdminVendorsPage', () => {
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
   })
 
+  it('says so when the vendor list cannot be loaded', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input))
+        if (url.pathname === '/api/auth/me') return json(200, { user: admin })
+        return json(500, { error: 'Something went wrong', code: 'INTERNAL' })
+      }),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Could not load vendor accounts.')).toBeInTheDocument()
+  })
+
+  it('re-checks the session when the server says the admin role is gone', async () => {
+    const user = userEvent.setup()
+    stubApi({ onCreate: () => json(403, { error: 'Forbidden', code: 'FORBIDDEN' }) })
+    const fetchMock = vi.mocked(fetch)
+    renderPage()
+    await screen.findByText('No vendor accounts yet.')
+    const meCalls = () =>
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/auth/me')).length
+    expect(meCalls()).toBe(1)
+
+    await fillForm(user)
+    await user.click(screen.getByRole('button', { name: 'Create vendor account' }))
+
+    await waitFor(() => expect(meCalls()).toBe(2))
+  })
+
+  it('shows the words for the error code on an unexpected failure and keeps what was typed', async () => {
+    const user = userEvent.setup()
+    stubApi({ onCreate: () => json(500, { error: 'raw server text', code: 'INTERNAL' }) })
+    renderPage()
+    await screen.findByText('No vendor accounts yet.')
+
+    await fillForm(user)
+    await user.click(screen.getByRole('button', { name: 'Create vendor account' }))
+
+    expect(await screen.findByText('Something went wrong')).toBeInTheDocument()
+    expect(screen.queryByText('raw server text')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Company name')).toHaveValue('Reklama Plus')
+  })
+
   it('generates a visible 16-character password, and masks it again when typed over', async () => {
     const user = userEvent.setup()
     stubApi()
