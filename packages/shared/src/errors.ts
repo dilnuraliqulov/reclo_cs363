@@ -14,6 +14,9 @@ export const errorCodeSchema = z.enum([
   'INVALID_INPUT',
   'INVALID_QUERY',
   'MALFORMED_JSON',
+  'PAYLOAD_TOO_LARGE',
+  'UNSUPPORTED_MEDIA_TYPE',
+  'NOT_FOUND',
   'INVALID_PLACEMENT_ID',
   'PLACEMENT_NOT_FOUND',
   'DUPLICATE_INQUIRY',
@@ -53,6 +56,7 @@ export const VALIDATION_CODES = {
   latOrder: 'validation.bounds.latOrder',
   lngOrder: 'validation.bounds.lngOrder',
   required: 'validation.required',
+  invalid: 'validation.invalid',
   titleLength: 'validation.title.length',
   descriptionTooLong: 'validation.description.tooLong',
   addressLength: 'validation.address.length',
@@ -67,6 +71,19 @@ export const VALIDATION_CODES = {
   reasonTooShort: 'validation.reason.tooShort',
   reasonTooLong: 'validation.reason.tooLong',
 } as const
+
+/**
+ * Zod's built-in messages are English sentences ("Invalid input: expected string, received
+ * undefined"). Any issue a schema did not give its own code lands here instead, so a wrong type or
+ * a missing key reaches the reader as a code and never as a sentence (KAN-80). A message set on a
+ * schema still wins over this, as it does over Zod's own default.
+ */
+z.config({
+  customError: (issue) =>
+    issue.code === 'invalid_type' && issue.input === undefined
+      ? VALIDATION_CODES.required
+      : VALIDATION_CODES.invalid,
+})
 
 export const validationCodeSchema = z.enum(VALIDATION_CODES)
 export type ValidationCode = z.infer<typeof validationCodeSchema>

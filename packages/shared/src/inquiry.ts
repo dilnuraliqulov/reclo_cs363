@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { emailSchema } from './auth'
 import { apiErrorSchema, VALIDATION_CODES } from './errors'
 import { placementTypeSchema } from './placement'
 
@@ -39,9 +40,13 @@ export const createInquiryRequestSchema = z.object({
     .trim()
     .min(MESSAGE_MIN_LENGTH, VALIDATION_CODES.messageTooShort)
     .max(MESSAGE_MAX_LENGTH, VALIDATION_CODES.messageTooLong),
-  contactName: z.string().trim().min(2, VALIDATION_CODES.nameRequired).max(120),
+  contactName: z
+    .string()
+    .trim()
+    .min(2, VALIDATION_CODES.nameRequired)
+    .max(120, VALIDATION_CODES.nameRequired),
   contactPhone: uzPhoneSchema,
-  contactEmail: z.string().trim().toLowerCase().pipe(z.email(VALIDATION_CODES.emailInvalid)),
+  contactEmail: emailSchema,
   desiredStartDate: z.string().date().optional(),
   durationMonths: z.coerce.number().int().min(1).max(DURATION_MAX_MONTHS).optional(),
 })
