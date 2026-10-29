@@ -61,6 +61,8 @@ export function detail(
     width: 6,
     height: 3,
     lighting: true,
+    ledDurationSeconds: null,
+    ledPlaysPerDay: null,
     photos: [`https://api.example.com/uploads/${index}.jpg`],
     photo: `https://api.example.com/uploads/${index}.jpg`,
     vendorId: 'vendor-1',

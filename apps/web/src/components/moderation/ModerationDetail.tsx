@@ -286,6 +286,20 @@ function Specs({ placement }: { placement: AdminPlacementDetail }) {
       t('moderation.spec.lighting'),
       placement.lighting ? t('moderation.spec.lightingOn') : t('moderation.spec.lightingOff'),
     ],
+    ...(placement.type === 'LED_SCREEN'
+      ? [
+          [
+            t('moderation.spec.ledDuration'),
+            placement.ledDurationSeconds !== null
+              ? t('moderation.spec.ledDurationValue', { seconds: placement.ledDurationSeconds })
+              : '—',
+          ] as [string, string],
+          [t('moderation.spec.ledPlays'), placement.ledPlaysPerDay?.toString() ?? '—'] as [
+            string,
+            string,
+          ],
+        ]
+      : []),
     [t('moderation.spec.address'), `${placement.address}, ${placement.city}`],
     [t('moderation.spec.coordinates'), `${placement.latitude}, ${placement.longitude}`],
   ]
