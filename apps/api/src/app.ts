@@ -6,6 +6,8 @@ import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import { createCartRouter } from './cart/routes'
+import type { CartStore } from './cart/store'
 import {
   errorHandler,
   JSON_BODY_LIMIT,
@@ -40,6 +42,8 @@ export interface AppDependencies {
   uploadsDir?: string
   /** Inquiries persistence. */
   inquiryStore?: InquiryStore
+  /** A signed-in client's media plan. The `/api/cart` routes are mounted only when present. */
+  cartStore?: CartStore
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
   corsOrigin?: string
   /** Clock, injectable for session expiry tests. */
@@ -52,6 +56,8 @@ export interface AppDependencies {
   vendorRateLimitMax?: number
   /** Max approve + reject + create-vendor requests per IP per 15 minutes. Defaults to 120. */
   adminRateLimitMax?: number
+  /** Max cart writes per IP per 15 minutes. Defaults to 120. */
+  cartRateLimitMax?: number
   /** Set the Secure flag on the session cookie (production). */
   secureCookies?: boolean
 }
@@ -61,6 +67,7 @@ export function createApp({
   authStore,
   placementStore,
   inquiryStore,
+  cartStore,
   vendorPlacementStore,
   adminPlacementStore,
   photoStorage,
@@ -71,6 +78,7 @@ export function createApp({
   inquiryRateLimitMax = 20,
   vendorRateLimitMax = 120,
   adminRateLimitMax = 120,
+  cartRateLimitMax = 120,
   secureCookies = false,
 }: AppDependencies): Express {
   const app = express()
@@ -158,6 +166,13 @@ export function createApp({
         now,
         rateLimitMax: inquiryRateLimitMax,
       }),
+    )
+  }
+
+  if (cartStore) {
+    app.use(
+      '/api/cart',
+      createCartRouter({ store: cartStore, requireAuth, rateLimitMax: cartRateLimitMax }),
     )
   }
 
