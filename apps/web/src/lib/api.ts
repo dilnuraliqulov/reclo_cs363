@@ -139,7 +139,8 @@ export async function fetchPlacementDetail(id: string): Promise<PlacementDetail>
   const response = await fetch(`${API_URL}/api/placements/${id}`)
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
-    throw new Error(
+    throw new ApiRequestError(
+      response.status,
       typeof errorBody.error === 'string'
         ? errorBody.error
         : `Failed to fetch placement detail (${response.status})`,

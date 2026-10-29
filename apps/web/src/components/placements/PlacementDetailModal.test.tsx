@@ -1,11 +1,18 @@
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render as baseRender, screen, waitFor, type RenderOptions } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { CartProvider } from '@/components/cart/CartProvider'
 import { PlacementDetailModal } from './PlacementDetailModal'
+
+/** The modal's add-to-plan button needs the cart context, as it has in the app. */
+function render(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+  return baseRender(ui, { wrapper: CartProvider, ...options })
+}
 
 const marker: PlacementMarker = {
   id: 'b1e0696a-54c3-4d40-84c4-f2a89326e680',

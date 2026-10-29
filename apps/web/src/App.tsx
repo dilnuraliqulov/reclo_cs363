@@ -3,6 +3,7 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { GuestOnly } from '@/auth/GuestOnly'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { RequireRole } from '@/auth/RequireRole'
+import { CartProvider } from '@/components/cart/CartProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { LocaleProvider } from '@/i18n/LocaleProvider'
 import { InquiryHistoryPage } from '@/pages/InquiryHistoryPage'
@@ -17,26 +18,28 @@ export default function App() {
   return (
     <LocaleProvider>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<PlacementsDiscoveryPage />} />
-          <Route path="/placements" element={<PlacementsDiscoveryPage />} />
-          <Route element={<RequireAuth />}>
-            <Route path="/inquiries" element={<InquiryHistoryPage />} />
-            <Route element={<RequireRole role="VENDOR" />}>
-              <Route path="/vendor/placements" element={<VendorListingsPage />} />
-              <Route path="/vendor/placements/new" element={<ListingEditorPage />} />
-              <Route path="/vendor/placements/:id/edit" element={<ListingEditorPage />} />
+        <CartProvider>
+          <Routes>
+            <Route path="/" element={<PlacementsDiscoveryPage />} />
+            <Route path="/placements" element={<PlacementsDiscoveryPage />} />
+            <Route element={<RequireAuth />}>
+              <Route path="/inquiries" element={<InquiryHistoryPage />} />
+              <Route element={<RequireRole role="VENDOR" />}>
+                <Route path="/vendor/placements" element={<VendorListingsPage />} />
+                <Route path="/vendor/placements/new" element={<ListingEditorPage />} />
+                <Route path="/vendor/placements/:id/edit" element={<ListingEditorPage />} />
+              </Route>
             </Route>
-          </Route>
-          <Route element={<RequireRole role="ADMIN" />}>
-            <Route path="/admin/moderation/:id?" element={<ModerationPage />} />
-          </Route>
-          <Route element={<GuestOnly />}>
-            <Route path="/sign-in" element={<SignInPage />} />
-            <Route path="/sign-up" element={<SignUpPage />} />
-          </Route>
-        </Routes>
-        <Toaster />
+            <Route element={<RequireRole role="ADMIN" />}>
+              <Route path="/admin/moderation/:id?" element={<ModerationPage />} />
+            </Route>
+            <Route element={<GuestOnly />}>
+              <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/sign-up" element={<SignUpPage />} />
+            </Route>
+          </Routes>
+          <Toaster />
+        </CartProvider>
       </AuthProvider>
     </LocaleProvider>
   )
