@@ -2,6 +2,8 @@ import type { HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { type Express } from 'express'
+import { createAdminInquiryRouter } from './admin/inquiry-routes'
+import type { AdminInquiryStore } from './admin/inquiry-store'
 import { createAdminRouter } from './admin/routes'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
@@ -42,6 +44,8 @@ export interface AppDependencies {
   uploadsDir?: string
   /** Inquiries persistence. */
   inquiryStore?: InquiryStore
+  /** Admin inquiry history. The `/api/admin/inquiries` routes are mounted only when present. */
+  adminInquiryStore?: AdminInquiryStore
   /** A signed-in client's media plan. The `/api/cart` routes are mounted only when present. */
   cartStore?: CartStore
   /** Origin allowed by CORS (with credentials). Omit to disable CORS headers. */
@@ -67,6 +71,7 @@ export function createApp({
   authStore,
   placementStore,
   inquiryStore,
+  adminInquiryStore,
   cartStore,
   vendorPlacementStore,
   adminPlacementStore,
@@ -142,6 +147,13 @@ export function createApp({
         requireAuth,
         rateLimitMax: adminRateLimitMax,
       }),
+    )
+  }
+
+  if (adminInquiryStore) {
+    app.use(
+      '/api/admin/inquiries',
+      createAdminInquiryRouter({ store: adminInquiryStore, requireAuth }),
     )
   }
 

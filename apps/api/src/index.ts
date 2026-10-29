@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { createPrismaAdminInquiryStore } from './admin/inquiry-prisma-store'
 import { createApp } from './app'
 import { createPrismaAuthStore } from './auth/prisma-store'
 import { PrismaCartStore } from './cart/prisma-store'
@@ -22,6 +23,7 @@ const app = createApp({
   photoStorage: new DiskPhotoStorage(uploadsDir),
   uploadsDir,
   inquiryStore: createPrismaInquiryStore(prisma),
+  adminInquiryStore: createPrismaAdminInquiryStore(prisma),
   cartStore: new PrismaCartStore(prisma, env.API_PUBLIC_URL),
   corsOrigin: env.CORS_ORIGIN,
   secureCookies: process.env['NODE_ENV'] === 'production',
