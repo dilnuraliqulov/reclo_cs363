@@ -2,7 +2,8 @@
 // Docs: https://pris.ly/d/prisma-schema
 //
 // The connection URL is not set here: Prisma 7 reads it from prisma7.config.ts.
-// Models: User (vendor fields: KAN-55), Session (KAN-67), Placement (KAN-23) and Inquiry (KAN-35).
+// Models: User (vendor fields: KAN-55), Session (KAN-67), Placement (KAN-23), Inquiry (KAN-35)
+// and CartItem (KAN-31).
 
 generator client {
   provider = "prisma-client"
@@ -31,8 +32,9 @@ model User {
   clientInquiries Inquiry[]   @relation("ClientInquiries")
   vendorInquiries Inquiry[]   @relation("VendorInquiries")
   moderationEvents ModerationEvent[] @relation("ModerationEvents")
+  cartItems       CartItem[]
 
-  companyName     String?     // set for VENDOR accounts, null otherwise
+  companyName    String?     // set for VENDOR accounts, null otherwise
   createdById     String?     // the ADMIN who created this account; null for self-registered users
   createdBy       User?       @relation("CreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers    User[]      @relation("CreatedUsers")
@@ -87,6 +89,7 @@ model Placement {
   vendor        User            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   inquiries     Inquiry[]
   moderationEvents ModerationEvent[]
+  cartItems     CartItem[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -146,4 +149,17 @@ model Inquiry {
   // Serves the vendor inbox counting unread (KAN-15).
   @@index([vendorId, status])
   @@index([placementId])
+}
+
+// A signed-in client's media plan (KAN-7). One row per placement: the primary key is the
+// duplicate rule. Title, price and photo are read from Placement, so nothing here goes stale.
+model CartItem {
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placementId String
+  placement   Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  addedAt     DateTime  @default(now())
+
+  @@id([userId, placementId]) // also serves "this user's cart"
+  @@index([placementId]) // serves the cascade when a placement is deleted
 }

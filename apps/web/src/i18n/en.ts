@@ -149,6 +149,7 @@ export const en = {
   'error.PLACEMENT_NOT_PENDING': 'This listing is no longer waiting for review',
   'error.PLACEMENT_CHANGED': 'The vendor changed this listing. Review it again.',
   'error.PLACEMENT_NO_PHOTOS': "A listing without photos can't be approved",
+  'error.CART_FULL': 'Your media plan is full',
 
   'validation.email.invalid': 'Enter a valid email',
   'validation.email.taken': 'Email is already registered',

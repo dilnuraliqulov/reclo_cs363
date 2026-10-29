@@ -32,6 +32,7 @@ export const errorCodeSchema = z.enum([
   'PLACEMENT_NOT_PENDING',
   'PLACEMENT_CHANGED',
   'PLACEMENT_NO_PHOTOS',
+  'CART_FULL',
   'INTERNAL',
 ])
 export type ErrorCode = z.infer<typeof errorCodeSchema>

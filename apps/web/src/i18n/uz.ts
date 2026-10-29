@@ -144,6 +144,7 @@ export const uz = {
   'error.PLACEMENT_NOT_PENDING': "Bu e'lon endi ko'rib chiqishni kutmayapti",
   'error.PLACEMENT_CHANGED': "Sotuvchi e'lonni o'zgartirdi. Uni qayta ko'rib chiqing.",
   'error.PLACEMENT_NO_PHOTOS': "Rasmsiz e'lonni tasdiqlab bo'lmaydi",
+  'error.CART_FULL': "Media rejangiz to'lgan",
 
   'validation.email.invalid': "To'g'ri email kiriting",
   'validation.email.taken': "Bu email allaqachon ro'yxatdan o'tgan",
