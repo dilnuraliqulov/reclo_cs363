@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   placementPricingSchema,
   vendorPlacementListResponseSchema,
@@ -68,7 +69,7 @@ export async function deletePlacementPhoto(id: string, photoUrl: string) {
 /** The listing's price matrix, or null before the vendor has set one (KAN-11). */
 export async function fetchVendorPlacementPricing(id: string): Promise<PlacementPricing | null> {
   const response = await request(`${BASE}/${id}/pricing`, { method: 'GET' })
-  return placementPricingSchema.nullable().parse(await response.json())
+  return z.object({ pricing: placementPricingSchema.nullable() }).parse(await response.json()).pricing
 }
 
 export async function saveVendorPlacementPricing(
@@ -76,5 +77,5 @@ export async function saveVendorPlacementPricing(
   pricing: PlacementPricing,
 ): Promise<PlacementPricing> {
   const response = await request(`${BASE}/${id}/pricing`, { method: 'PUT', body: pricing })
-  return placementPricingSchema.parse(await response.json())
+  return z.object({ pricing: placementPricingSchema }).parse(await response.json()).pricing
 }
