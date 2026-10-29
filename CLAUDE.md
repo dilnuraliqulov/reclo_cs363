@@ -52,10 +52,9 @@ setup steps are in `README.md`.
 
 Project key: `KAN`.
 
-Current task: **KAN-13 "Only admins can create vendor accounts"**. Do its subtasks in this
+Current task: **KAN-17 "Vendors get an email on each new inquiry"**. Do its subtasks in this
 order:
 
-1. KAN-54 Design
-2. KAN-55 Backend
-3. KAN-56 Frontend
-4. KAN-57 Testing
+1. KAN-70 Design
+2. KAN-71 Backend
+3. KAN-72 Testing
