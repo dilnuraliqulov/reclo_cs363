@@ -14,6 +14,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useLocation } from 'react-router'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
+import { FormError } from '@/components/forms/FormError'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -37,6 +38,7 @@ import type { LocaleContextValue } from '@/i18n/context'
 import { useLocale, useT } from '@/i18n/useLocale'
 import { ApiRequestError, createInquiry } from '@/lib/api'
 import { formatInquiryDate } from '@/lib/inquiries'
+import { useFormFailure } from '@/hooks/useFormFailure'
 import { useMessages } from '@/lib/messages'
 
 const DURATION_OPTIONS = [1, 3, 6, 12, DURATION_MAX_MONTHS] as const
@@ -76,7 +78,7 @@ function duplicateMessage(
  */
 function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: InquiryFormProps) {
   const { locale, t } = useLocale()
-  const { apiErrorText, fieldError } = useMessages()
+  const { fieldError } = useMessages()
   // Set on a 409: the submit stays disabled, because retrying cannot succeed.
   const [duplicate, setDuplicate] = useState<string | null>(null)
 
@@ -93,6 +95,8 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
       contactEmail: email,
     },
   })
+
+  const { formError, fail, clear } = useFormFailure(form)
 
   const send = useMutation({
     mutationFn: createInquiry,
@@ -111,15 +115,8 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
           onSessionLost()
           return
         }
-        if (error.fieldErrors) {
-          for (const [name, messages] of Object.entries(error.fieldErrors)) {
-            if (name in form.getValues() && messages[0]) {
-              form.setError(name as keyof CreateInquiryFormValues, { message: messages[0] })
-            }
-          }
-        }
       }
-      toast.error(apiErrorText(error))
+      fail(error)
     },
   })
 
@@ -131,7 +128,10 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
 
   return (
     <form
-      onSubmit={form.handleSubmit((values) => send.mutate(values))}
+      onSubmit={form.handleSubmit((values) => {
+        clear()
+        send.mutate(values)
+      })}
       noValidate
       aria-busy={isSending}
     >
@@ -148,8 +148,11 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 autoComplete="name"
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
+                aria-describedby={fieldState.invalid ? 'inquiry-name-error' : undefined}
               />
-              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+              {fieldState.invalid && (
+                <FieldError id="inquiry-name-error" errors={[fieldError(fieldState.error)]} />
+              )}
             </Field>
           )}
         />
@@ -168,9 +171,12 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 placeholder="+998 90 123 45 67"
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
+                aria-describedby={fieldState.invalid ? 'inquiry-phone-error' : undefined}
               />
               <FieldDescription>{t('inquiry.form.phoneHint')}</FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+              {fieldState.invalid && (
+                <FieldError id="inquiry-phone-error" errors={[fieldError(fieldState.error)]} />
+              )}
             </Field>
           )}
         />
@@ -188,8 +194,11 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 autoComplete="email"
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
+                aria-describedby={fieldState.invalid ? 'inquiry-email-error' : undefined}
               />
-              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+              {fieldState.invalid && (
+                <FieldError id="inquiry-email-error" errors={[fieldError(fieldState.error)]} />
+              )}
             </Field>
           )}
         />
@@ -208,8 +217,11 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                   type="date"
                   disabled={isSending}
                   aria-invalid={fieldState.invalid}
+                  aria-describedby={fieldState.invalid ? 'inquiry-start-error' : undefined}
                 />
-                {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                {fieldState.invalid && (
+                  <FieldError id="inquiry-start-error" errors={[fieldError(fieldState.error)]} />
+                )}
               </Field>
             )}
           />
@@ -228,6 +240,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                   <SelectTrigger
                     id="inquiry-duration"
                     aria-invalid={fieldState.invalid}
+                    aria-describedby={fieldState.invalid ? 'inquiry-duration-error' : undefined}
                     className="w-full"
                   >
                     <SelectValue placeholder={t('inquiry.form.durationPlaceholder')} />
@@ -240,7 +253,9 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                     ))}
                   </SelectContent>
                 </Select>
-                {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                {fieldState.invalid && (
+                  <FieldError id="inquiry-duration-error" errors={[fieldError(fieldState.error)]} />
+                )}
               </Field>
             )}
           />
@@ -259,6 +274,7 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
                 maxLength={MESSAGE_MAX_LENGTH}
                 disabled={isSending}
                 aria-invalid={fieldState.invalid}
+                aria-describedby={fieldState.invalid ? 'inquiry-message-error' : undefined}
               />
               <FieldDescription
                 // Announcing every keystroke would be noise, so the counter speaks only
@@ -267,12 +283,15 @@ function InquiryForm({ placement, email, onSent, onCancel, onSessionLost }: Inqu
               >
                 {messageLength}/{MESSAGE_MAX_LENGTH}
               </FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+              {fieldState.invalid && (
+                <FieldError id="inquiry-message-error" errors={[fieldError(fieldState.error)]} />
+              )}
             </Field>
           )}
         />
 
         {duplicate && <FieldError className="font-medium">{duplicate}</FieldError>}
+        <FormError message={formError} />
       </FieldGroup>
 
       <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2">

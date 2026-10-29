@@ -3,9 +3,9 @@ import { loginRequestSchema, type LoginRequest } from '@reclo/shared'
 import { useMutation } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
-import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
 import { useNextPath } from '@/auth/useNextPath'
+import { FormError } from '@/components/forms/FormError'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,13 +18,14 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
+import { useFormFailure } from '@/hooks/useFormFailure'
 import { useT } from '@/i18n/useLocale'
-import { ApiRequestError, login } from '@/lib/api'
+import { login } from '@/lib/api'
 import { useMessages } from '@/lib/messages'
 
 export function SignInPage() {
   const t = useT()
-  const { apiErrorText, fieldError } = useMessages()
+  const { fieldError } = useMessages()
   const { setUser } = useAuth()
   const navigate = useNavigate()
   // Set when the client was sent here from a placement, so they land back on it.
@@ -36,6 +37,8 @@ export function SignInPage() {
     defaultValues: { email: '', password: '' },
   })
 
+  const { formError, fail, clear } = useFormFailure(form)
+
   const signIn = useMutation({
     mutationFn: login,
     onSuccess: (user) => {
@@ -43,14 +46,7 @@ export function SignInPage() {
       void navigate(next, { replace: true })
     },
     onError: (error) => {
-      if (error instanceof ApiRequestError && error.fieldErrors) {
-        for (const [name, messages] of Object.entries(error.fieldErrors)) {
-          if ((name === 'email' || name === 'password') && messages[0]) {
-            form.setError(name, { message: messages[0] })
-          }
-        }
-      }
-      toast.error(apiErrorText(error))
+      fail(error)
     },
   })
 
@@ -67,7 +63,13 @@ export function SignInPage() {
           <CardDescription>{t('signIn.description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit((values) => signIn.mutate(values))} noValidate>
+          <form
+            onSubmit={form.handleSubmit((values) => {
+              clear()
+              signIn.mutate(values)
+            })}
+            noValidate
+          >
             <FieldGroup>
               <Controller
                 name="email"
@@ -82,8 +84,14 @@ export function SignInPage() {
                       autoComplete="email"
                       disabled={signIn.isPending}
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'sign-in-email-error' : undefined}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="sign-in-email-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
@@ -100,11 +108,18 @@ export function SignInPage() {
                       autoComplete="current-password"
                       disabled={signIn.isPending}
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'sign-in-password-error' : undefined}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="sign-in-password-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
+              <FormError message={formError} />
               <Button type="submit" disabled={signIn.isPending}>
                 {signIn.isPending ? t('signIn.submitting') : t('auth.signIn')}
               </Button>

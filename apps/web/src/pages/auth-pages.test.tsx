@@ -126,12 +126,13 @@ describe('SignUpPage', () => {
     expect(await screen.findByText('Signed in as')).toBeInTheDocument()
   })
 
-  it('shows the server error inline and in a toast when the email is taken', async () => {
+  it('shows the server error inline, next to the field, when the email is taken', async () => {
     stubApi((path) =>
       path === '/api/auth/register'
         ? json(409, {
             error: 'Email is already registered',
-            fieldErrors: { email: ['Email is already registered'] },
+            code: 'EMAIL_TAKEN',
+            fieldErrors: { email: ['validation.email.taken'] },
           })
         : json(401, { error: 'no' }),
     )
@@ -142,8 +143,9 @@ describe('SignUpPage', () => {
     await form.type(screen.getByLabelText('Password'), 'correct-horse')
     await form.click(screen.getByRole('button', { name: 'Sign up' }))
 
-    // Once inline under the field, once in the toast.
-    await waitFor(() => expect(screen.getAllByText('Email is already registered')).toHaveLength(2))
+    // Under the field only: a server error that found its field is not repeated above the form.
+    await waitFor(() => expect(screen.getAllByText('Email is already registered')).toHaveLength(1))
+    expect(screen.queryByTestId('form-error')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeEnabled()
   })
@@ -189,8 +191,8 @@ describe('SignInPage', () => {
     })
   })
 
-  it('shows the server error in a toast when the credentials are wrong', async () => {
-    stubApi(() => json(401, { error: 'Invalid email or password' }))
+  it('shows a form-level message when the credentials are wrong', async () => {
+    stubApi(() => json(401, { error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' }))
     renderAt('/sign-in')
     const form = userEvent.setup()
 
@@ -198,11 +200,11 @@ describe('SignInPage', () => {
     await form.type(screen.getByLabelText('Password'), 'wrong-password')
     await form.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByText('Invalid email or password')).toBeInTheDocument()
+    expect(await screen.findByTestId('form-error')).toHaveTextContent('Invalid email or password')
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
   })
 
-  it('shows a toast when the server cannot be reached', async () => {
+  it('shows a form-level message when the server cannot be reached', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -217,7 +219,7 @@ describe('SignInPage', () => {
     await form.type(screen.getByLabelText('Password'), 'correct-horse')
     await form.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByText(/Cannot reach the server/)).toBeInTheDocument()
+    expect(await screen.findByTestId('form-error')).toHaveTextContent(/Cannot reach the server/)
   })
 
   it('links to the sign-up page', async () => {

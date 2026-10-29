@@ -11,7 +11,8 @@
   `archivedAt = now()`; the row, its photos and its inquiries stay. Inquiries cascade-delete with the
   placement, and the client history (KAN-9) joins the placement without filtering on its status, so a
   hard delete would erase a client's history. Removing rows for good is an admin or ops matter.
-- **Status state machine** (vendor-initiated transitions only; admin approval is KAN-14):
+- **Status state machine** (vendor-initiated transitions only; the admin rows and `REJECTED` are in
+  [`moderation-design.md`](./moderation-design.md), which supersedes the two admin rows below):
 
   | From             | To               | Who    | How                                                       |
   | ---------------- | ---------------- | ------ | --------------------------------------------------------- |
@@ -20,8 +21,9 @@
   | `INACTIVE`       | `ACTIVE`         | vendor | resume                                                    |
   | `ACTIVE`         | `PENDING_REVIEW` | system | vendor edits any content field                            |
   | `INACTIVE`       | `PENDING_REVIEW` | system | vendor edits any content field                            |
-  | `PENDING_REVIEW` | `ACTIVE`         | admin  | KAN-14 (not here)                                         |
-  | `PENDING_REVIEW` | `INACTIVE`       | admin  | KAN-14 (reject; not here)                                 |
+  | `REJECTED`       | `PENDING_REVIEW` | system | vendor edits any content field (the resubmit)             |
+  | `PENDING_REVIEW` | `ACTIVE`         | admin  | approve (KAN-14, moderation-design.md)                    |
+  | `PENDING_REVIEW` | `REJECTED`       | admin  | reject, not `INACTIVE` (KAN-14, moderation-design.md)     |
   | any non-archived | `ARCHIVED`       | vendor | archive                                                   |
   | `ARCHIVED`       | `PENDING_REVIEW` | vendor | restore (never straight to `ACTIVE`; goes back to review) |
 
@@ -29,12 +31,13 @@
   An `ARCHIVED` listing cannot be edited: restore it first.
 
 - **A content edit re-enters moderation.** Editing an `ACTIVE` listing sets it back to
-  `PENDING_REVIEW`, and the same goes for `INACTIVE`. Otherwise a vendor could get a harmless listing
+  `PENDING_REVIEW`, and the same goes for `INACTIVE` and `REJECTED`. Otherwise a vendor could get a harmless listing
   approved and then swap in anything. KAN-14 relies on this. The price is that a typo fix takes the
   listing off the map until an admin re-approves it; the editor says so before saving (see
   [States](#states)). Because an edit also pulls a paused listing out of `INACTIVE`, resuming
-  `INACTIVE -> ACTIVE` never publishes unreviewed content. "Content field" means every field in
-  `updatePlacementRequestSchema`; photo upload and removal count as an edit too.
+  `INACTIVE -> ACTIVE` never publishes unreviewed content. `INACTIVE` only ever means "approved, then
+  paused by the vendor": a rejected listing is `REJECTED`, so Resume cannot publish it. "Content field" means every field in
+  `updatePlacementRequestSchema`, including `ledDurationSeconds` and `ledPlaysPerDay`; photo upload and removal count as an edit too.
 - **Restore goes to `PENDING_REVIEW`, not back to the previous status.** It needs no
   `statusBeforeArchive` column, and a listing that sat archived for months gets a fresh look. Restore
   sets `archivedAt = null`.
@@ -108,19 +111,23 @@ New schemas are added next to the existing placement ones. The web form and the 
 const latitudeSchema = z.number().min(37.0).max(45.6)
 const longitudeSchema = z.number().min(56.0).max(73.2)
 
-createPlacementRequestSchema = z.object({
-  title: z.string().trim().min(5).max(120),
-  description: z.string().trim().max(2000).optional(),
-  type: placementTypeSchema,
-  latitude: latitudeSchema,
-  longitude: longitudeSchema,
-  address: z.string().trim().min(3).max(200),
-  city: z.string().trim().min(2).max(80),
-  pricePerMonth: z.coerce.number().int().min(100_000).max(1_000_000_000), // UZS
-  width: z.coerce.number().positive().max(100).optional(), // metres
-  height: z.coerce.number().positive().max(100).optional(),
-  lighting: z.boolean().default(false),
-})
+createPlacementRequestSchema = z
+  .object({
+    title: z.string().trim().min(5).max(120),
+    description: z.string().trim().max(2000).optional(),
+    type: placementTypeSchema, // BILLBOARD | LED_SCREEN (KAN-12)
+    latitude: latitudeSchema,
+    longitude: longitudeSchema,
+    address: z.string().trim().min(3).max(200),
+    city: z.string().trim().min(2).max(80),
+    pricePerMonth: z.coerce.number().int().min(100_000).max(1_000_000_000), // UZS
+    width: z.coerce.number().positive().max(100).optional(), // metres
+    height: z.coerce.number().positive().max(100).optional(),
+    lighting: z.boolean().default(false),
+    ledDurationSeconds: z.number().int().positive().optional(), // LED_SCREEN only
+    ledPlaysPerDay: z.number().int().positive().optional(), // LED_SCREEN only
+  })
+  .refine(ledOnlyForLedScreen) // 400 validation.led.typeOnly otherwise
 
 updatePlacementRequestSchema = createPlacementRequestSchema
   .partial()
@@ -180,14 +187,20 @@ Server-side rules:
 3. Validation failures are `400 { error, fieldErrors }`, the shape the other routes use.
 4. State errors are `409 { error }` with a message that names the current status, e.g. _"Only an
    archived listing can be restored"_. The editor shows it as a toast and refetches.
-5. A `PATCH` on an `ACTIVE` or `INACTIVE` listing changes the content and sets
+5. LED fields (`ledDurationSeconds`, `ledPlaysPerDay`, positive ints, both optional) are accepted only
+   when the type after the edit is `LED_SCREEN`; otherwise `400` with `fieldErrors.type =
+["validation.led.typeOnly"]`. A `PATCH` that changes the type away from `LED_SCREEN` clears both
+   (sets `null`) in the same update; LED values for a stored non-LED listing, with no `type` in the
+   body, are the same `400` (checked in the update's `where`, so it cannot race a type change).
+   Editing them is a content edit like any other.
+6. A `PATCH` on an `ACTIVE`, `INACTIVE` or `REJECTED` listing changes the content and sets
    `status = PENDING_REVIEW` in the same update. The response carries the new status so the UI can
    say so.
-6. Mutating routes share a rate limiter (same `express-rate-limit` approach as the auth and inquiry
+7. Mutating routes share a rate limiter (same `express-rate-limit` approach as the auth and inquiry
    routes, `vendorRateLimitMax` option on `createApp` so tests can lower it).
-7. `GET` list: `where { vendorId }` plus the status rule, ordered `createdAt desc`, `total` counted on
+8. `GET` list: `where { vendorId }` plus the status rule, ordered `createdAt desc`, `total` counted on
    the same filter.
-8. `createApp` takes a new optional `vendorPlacementStore` dependency, mounted only when present, so
+9. `createApp` takes a new optional `vendorPlacementStore` dependency, mounted only when present, so
    route tests stub it and need no database. Upload tests stub `PhotoStorage` as well.
 
 ## Screens and layout
@@ -242,7 +255,7 @@ ListingEditorPage
 ├─ <form> — FieldGroup inside four Cards
 │   ├─ Card "Basics"
 │   │   ├─ Field : FieldLabel "Title"        + Input                          + FieldError
-│   │   ├─ Field : FieldLabel "Type"         + Select (4 placement types)     + FieldError
+│   │   ├─ Field : FieldLabel "Type"         + Select (2 placement types; LED fields appear for LED screen)     + FieldError
 │   │   └─ Field : FieldLabel "Description"  + Textarea rows=5 + "<n>/2000"   + FieldError
 │   ├─ Card "Location"
 │   │   ├─ Field : FieldLabel "City"         + Input                          + FieldError
@@ -296,7 +309,8 @@ accept="image/jpeg,image/png,image/webp">`, a counter "3 / 8", and a hint with t
   back to My listings; it does not distinguish "missing" from "not yours", matching the API.
 - **Editor, status banner (edit):** shows the current status in words. `PENDING_REVIEW`: _"Waiting for
   review. It is not on the map yet."_ `ACTIVE`: _"Live on the map. Saving changes sends it back for
-  review and removes it from the map until it is approved."_ `INACTIVE`: same warning as `ACTIVE`.
+  review and removes it from the map until it is approved."_ `INACTIVE`: same warning as `ACTIVE`. `REJECTED`: the admin's reason in plain text, then _"Fix the
+  issues and save to send it for review again."_
   `ARCHIVED`: _"Archived. Restore it to edit."_ with a "Restore" button; the whole form is
   `disabled`.
 - **Editor, validation:** on submit, then on change, through the shared schema; messages render in
@@ -332,11 +346,6 @@ accept="image/jpeg,image/png,image/webp">`, a counter "3 / 8", and a hint with t
 
 ## Open questions
 
-- **Dilnur's draft PR #35** (`copilot/kan-12-static-ooh-placement-types`, KAN-12) changes
-  `PlacementType` and `schema.prisma` and adds a migration. If it merges before the KAN-43 backend, the
-  migration here will need rebasing, and `placementTypeSchema` (used by the editor's Type `Select`)
-  changes with it. KAN-43 must start from the latest `main` and read `schema.prisma` before adding a
-  migration.
 - **Who archived it?** An admin archive from KAN-14 and a vendor archive look identical, so a vendor
   could restore a listing an admin took down (it would only return to `PENDING_REVIEW`, so the damage
   is limited). If KAN-14 needs the distinction, it adds `archivedBy` or an `ARCHIVED_BY_ADMIN` reason;

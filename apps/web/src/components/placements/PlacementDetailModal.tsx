@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { PlacementDetail, PlacementMarker } from '@reclo/shared'
 import { Calendar, Compass, DollarSign, ImageOff, MapPin, Sparkles } from 'lucide-react'
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { InquiryFormDialog } from '@/components/inquiries/InquiryFormDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -160,6 +161,7 @@ export function PlacementDetailModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
+          <AddToCartButton placement={detail ?? marker} />
           <Button ref={inquireRef} className="gap-1.5" onClick={() => setIsInquiryOpen(true)}>
             <Sparkles className="w-4 h-4" />
             Inquire / Reserve
