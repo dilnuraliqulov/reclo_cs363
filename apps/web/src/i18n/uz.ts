@@ -81,6 +81,26 @@ export const uz = {
 
   'inquiry.months': { one: '{count} oy', other: '{count} oy' },
 
+  'cart.open': 'Media reja',
+  'cart.title': 'Sizning media rejangiz',
+  'cart.subtitle': 'Tanlab olgan joylaringiz. Ular shu qurilmada saqlanadi.',
+  'cart.items': { one: '{count} ta joy', other: '{count} ta joy' },
+  'cart.empty': "Media rejangiz bo'sh",
+  'cart.emptyBody': "Xaritadan billboard yoki LED ekranni oching va bu yerga qo'shing.",
+  'cart.add': "Media rejaga qo'shish",
+  'cart.inPlan': 'Media rejada',
+  'cart.added': "Media rejaga qo'shildi",
+  'cart.remove': 'Media rejadan olib tashlash',
+  'cart.clear': 'Hammasini tozalash',
+  'cart.total': 'Oyiga jami',
+  'cart.full': "Media rejangiz to'lgan (ko'pi bilan {max} ta joy)",
+  'cart.pruned': {
+    one: '{count} ta joy endi mavjud emas va media rejadan olib tashlandi',
+    other: '{count} ta joy endi mavjud emas va media rejadan olib tashlandi',
+  },
+  'cart.notPersistent':
+    "Media rejangizni bu qurilmada saqlab bo'lmadi, sahifa yangilansa yo'qoladi",
+
   'error.NOT_AUTHENTICATED': 'Tizimga kirilmagan',
   'error.FORBIDDEN': "Ruxsat yo'q",
   'error.INVALID_CREDENTIALS': 'Email yoki parol xato',

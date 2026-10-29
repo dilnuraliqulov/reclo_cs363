@@ -87,6 +87,25 @@ export const en = {
 
   'inquiry.months': { one: '{count} month', other: '{count} months' },
 
+  'cart.open': 'Media plan',
+  'cart.title': 'Your media plan',
+  'cart.subtitle': 'Placements you have collected. They are kept on this device.',
+  'cart.items': { one: '{count} placement', other: '{count} placements' },
+  'cart.empty': 'Your media plan is empty',
+  'cart.emptyBody': 'Open a billboard or LED screen on the map and add it here.',
+  'cart.add': 'Add to media plan',
+  'cart.inPlan': 'In media plan',
+  'cart.added': 'Added to your media plan',
+  'cart.remove': 'Remove from media plan',
+  'cart.clear': 'Clear all',
+  'cart.total': 'Total per month',
+  'cart.full': 'Your media plan is full ({max} placements maximum)',
+  'cart.pruned': {
+    one: '{count} placement is no longer available and was removed from your media plan',
+    other: '{count} placements are no longer available and were removed from your media plan',
+  },
+  'cart.notPersistent': 'Your media plan cannot be saved on this device and will be lost on reload',
+
   'error.NOT_AUTHENTICATED': 'Not authenticated',
   'error.FORBIDDEN': 'Forbidden',
   'error.INVALID_CREDENTIALS': 'Invalid email or password',

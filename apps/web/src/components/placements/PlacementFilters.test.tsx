@@ -24,11 +24,11 @@ function Harness({
   const [filters, setFilters] = useState(initial)
   const hasActiveFilters = Boolean(
     filters.type ||
-      filters.city.trim() ||
-      filters.minPrice.trim() ||
-      filters.maxPrice.trim() ||
-      filters.ledDurationSeconds.trim() ||
-      filters.ledPlaysPerDay.trim(),
+    filters.city.trim() ||
+    filters.minPrice.trim() ||
+    filters.maxPrice.trim() ||
+    filters.ledDurationSeconds.trim() ||
+    filters.ledPlaysPerDay.trim(),
   )
 
   return (
