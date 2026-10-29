@@ -3,6 +3,7 @@ import { REJECTION_REASON_LIMITS, rejectPlacementRequestSchema } from '@reclo/sh
 import { useEffect, useRef, type RefObject } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
+import { FormError } from '@/components/forms/FormError'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
+import { useFormFailure } from '@/hooks/useFormFailure'
 import { useT } from '@/i18n/useLocale'
 import { useMessages } from '@/lib/messages'
 
@@ -30,6 +32,8 @@ interface RejectDialogProps {
   /** True while the request runs: both buttons are disabled and the dialog cannot be dismissed. */
   pending: boolean
   onSubmit: (reason: string) => void
+  /** The last failed request, to put its field errors next to the reason and the rest above the buttons. */
+  error?: unknown
   /** Where focus goes when the dialog closes. It has no trigger of its own to return to. */
   returnFocusRef: RefObject<HTMLElement | null>
 }
@@ -39,6 +43,7 @@ export function RejectDialog({
   onOpenChange,
   pending,
   onSubmit,
+  error = null,
   returnFocusRef,
 }: RejectDialogProps) {
   const t = useT()
@@ -51,6 +56,12 @@ export function RejectDialog({
     reValidateMode: 'onChange',
     defaultValues: { reason: '' },
   })
+  const { formError, fail, clear } = useFormFailure(form)
+  // The error arrives as a prop because the request lives in the parent; map it when it changes.
+  useEffect(() => {
+    if (error) fail(error)
+    else clear()
+  }, [error, fail, clear])
   const reason = useWatch({ control: form.control, name: 'reason' })
   const length = reason?.length ?? 0
   const remaining = REJECTION_REASON_LIMITS.max - length
@@ -80,7 +91,13 @@ export function RejectDialog({
           returnFocusRef.current?.focus()
         }}
       >
-        <form onSubmit={form.handleSubmit((values) => onSubmit(values.reason))} noValidate>
+        <form
+          onSubmit={form.handleSubmit((values) => {
+            clear()
+            onSubmit(values.reason)
+          })}
+          noValidate
+        >
           <DialogHeader>
             <DialogTitle>{t('moderation.reject.title')}</DialogTitle>
             <DialogDescription>{t('moderation.reject.description')}</DialogDescription>
@@ -101,6 +118,7 @@ export function RejectDialog({
                     rows={4}
                     disabled={pending}
                     aria-invalid={fieldState.invalid}
+                    aria-describedby={fieldState.invalid ? 'reject-reason-error' : undefined}
                   />
                   <div className="flex items-start justify-between gap-2">
                     <FieldDescription>{t('moderation.reject.reasonHelp')}</FieldDescription>
@@ -116,11 +134,15 @@ export function RejectDialog({
                       ? t('moderation.reject.remaining', { remaining })
                       : ''}
                   </span>
-                  {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                  {fieldState.invalid && (
+                    <FieldError id="reject-reason-error" errors={[fieldError(fieldState.error)]} />
+                  )}
                 </Field>
               )}
             />
           </div>
+
+          <FormError message={formError} />
 
           <DialogFooter>
             <Button

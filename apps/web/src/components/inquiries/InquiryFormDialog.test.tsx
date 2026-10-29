@@ -282,7 +282,8 @@ describe('InquiryFormDialog', () => {
       onPost: () =>
         json(400, {
           error: 'Invalid input',
-          fieldErrors: { message: ['Message must be at least 10 characters'] },
+          code: 'INVALID_INPUT',
+          fieldErrors: { message: ['validation.message.tooShort'] },
         }),
     })
     renderDialog()

@@ -112,3 +112,22 @@ new codes, not changed ones.
 - **Text is not normalised** (Unicode form, control characters other than NUL, bidirectional
   overrides). Plain text is stored as typed.
 - **`desiredStartDate` may be in the past**; the inquiry design does not say it must not be.
+
+## Forms in the web app (KAN-81)
+
+Five forms take input: sign-in, sign-up, the inquiry dialog, the listing editor and the reject
+dialog. All five parse with a shared schema through `zodResolver`, show the localized message under
+the field (`FieldError` with an id, referenced by the input's `aria-describedby`, plus `aria-invalid`),
+and disable submit while the request runs.
+
+`useFormFailure` (`apps/web/src/hooks/useFormFailure.ts`) is the one place a failed request is placed:
+the server's `fieldErrors` codes go to their fields (the first takes focus); anything else (`_form`, an
+unknown field, 401 credentials, 429, 5xx, no connection) becomes a persistent `FormError` alert above
+the buttons, replacing the toasts the sign-in, sign-up, inquiry and listing forms used before. A
+rejected-listing failure shows inside the dialog, which stays open for a retry.
+
+The text always comes from the catalogs: a code maps to its `error.*` key; a response without a code
+maps by status (no response: `error.NETWORK`, 429: `error.RATE_LIMITED`, 5xx: `error.INTERNAL`). One
+deliberate exception, from KAN-79: a well-formed error body whose `code` this build does not know
+(a newer server) shows its `error` sentence, since it is the only description available. A field
+message that is not a known `validation.*` code reads as `validation.invalid`.

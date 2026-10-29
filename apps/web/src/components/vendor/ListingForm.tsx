@@ -28,30 +28,14 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { FormError } from '@/components/forms/FormError'
 import { useApiErrorHandler } from '@/hooks/useApiErrorHandler'
+import { useFormFailure } from '@/hooks/useFormFailure'
 import { useT } from '@/i18n/useLocale'
 import { ApiRequestError } from '@/lib/api'
 import { useMessages } from '@/lib/messages'
 import { formatPrice } from '@/lib/placements'
 import { createVendorPlacement, updateVendorPlacement } from '@/lib/vendor-placements'
-
-type FieldName = keyof CreatePlacementFormValues
-
-const FIELD_NAMES: FieldName[] = [
-  'title',
-  'description',
-  'type',
-  'latitude',
-  'longitude',
-  'address',
-  'city',
-  'pricePerMonth',
-  'width',
-  'height',
-  'lighting',
-  'ledDurationSeconds',
-  'ledPlaysPerDay',
-]
 
 const EMPTY_VALUES: CreatePlacementFormValues = {
   title: '',
@@ -149,6 +133,8 @@ export function ListingForm({
 
   const archived = placement?.status === 'ARCHIVED'
 
+  const { formError, fail, clear } = useFormFailure(form)
+
   const save = useMutation({
     mutationFn: async (data: CreatePlacementRequest) => {
       if (!placement) {
@@ -192,18 +178,10 @@ export function ListingForm({
       onPlacementChange(saved)
     },
     onError: (error) => {
-      // A 400 carries a message per field: put each next to its input.
-      if (error instanceof ApiRequestError && error.status === 400 && error.fieldErrors) {
-        let mapped = false
-        for (const [name, messages] of Object.entries(error.fieldErrors)) {
-          if (FIELD_NAMES.includes(name as FieldName) && messages[0]) {
-            form.setError(name as FieldName, { message: messages[0] }, { shouldFocus: !mapped })
-            mapped = true
-          }
-        }
-        if (mapped) return
-      }
-      handleError(error)
+      // An expired session goes to sign-in; a 400 puts a message next to each field it names; the
+      // rest (409, 429, 5xx, no connection) is one message at the top of the form.
+      if (error instanceof ApiRequestError && error.status === 401) handleError(error)
+      else fail(error)
     },
   })
 
@@ -242,10 +220,14 @@ export function ListingForm({
   return (
     <form
       noValidate
-      onSubmit={form.handleSubmit((data) => save.mutate(data))}
+      onSubmit={form.handleSubmit((data) => {
+        clear()
+        save.mutate(data)
+      })}
       className="space-y-4 pb-24"
     >
       {banner}
+      <FormError message={formError} />
       <fieldset disabled={locked} className="min-w-0 space-y-4 border-0 p-0">
         <Card role="group" aria-labelledby="listing-basics-title">
           <CardHeader>
@@ -263,9 +245,15 @@ export function ListingForm({
                       {...field}
                       id="listing-title"
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'listing-title-error' : undefined}
                       value={String(field.value ?? '')}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="listing-title-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
@@ -288,6 +276,7 @@ export function ListingForm({
                         ref={field.ref}
                         onBlur={field.onBlur}
                         aria-invalid={fieldState.invalid}
+                        aria-describedby={fieldState.invalid ? 'listing-type-error' : undefined}
                         className="w-full"
                       >
                         <SelectValue placeholder={t('listing.field.typePlaceholder')} />
@@ -300,7 +289,9 @@ export function ListingForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError id="listing-type-error" errors={[fieldError(fieldState.error)]} />
+                    )}
                   </Field>
                 )}
               />
@@ -335,6 +326,9 @@ export function ListingForm({
                       id="listing-description"
                       rows={5}
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={
+                        fieldState.invalid ? 'listing-description-error' : undefined
+                      }
                       value={field.value ?? ''}
                     />
                     <FieldDescription
@@ -346,7 +340,12 @@ export function ListingForm({
                         max: LISTING_LIMITS.descriptionMax,
                       })}
                     </FieldDescription>
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="listing-description-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
@@ -370,9 +369,12 @@ export function ListingForm({
                       {...field}
                       id="listing-city"
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'listing-city-error' : undefined}
                       value={String(field.value ?? '')}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError id="listing-city-error" errors={[fieldError(fieldState.error)]} />
+                    )}
                   </Field>
                 )}
               />
@@ -386,9 +388,15 @@ export function ListingForm({
                       {...field}
                       id="listing-address"
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'listing-address-error' : undefined}
                       value={String(field.value ?? '')}
                     />
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="listing-address-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
@@ -439,12 +447,18 @@ export function ListingForm({
                       id="listing-price"
                       inputMode="numeric"
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={fieldState.invalid ? 'listing-price-error' : undefined}
                       value={String(field.value ?? '')}
                     />
                     {Number.isFinite(price) && price > 0 && (
                       <FieldDescription>{formatPrice(price)}</FieldDescription>
                     )}
-                    {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                    {fieldState.invalid && (
+                      <FieldError
+                        id="listing-price-error"
+                        errors={[fieldError(fieldState.error)]}
+                      />
+                    )}
                   </Field>
                 )}
               />
@@ -460,9 +474,15 @@ export function ListingForm({
                         id="listing-width"
                         inputMode="decimal"
                         aria-invalid={fieldState.invalid}
+                        aria-describedby={fieldState.invalid ? 'listing-width-error' : undefined}
                         value={String(field.value ?? '')}
                       />
-                      {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                      {fieldState.invalid && (
+                        <FieldError
+                          id="listing-width-error"
+                          errors={[fieldError(fieldState.error)]}
+                        />
+                      )}
                     </Field>
                   )}
                 />
@@ -477,9 +497,15 @@ export function ListingForm({
                         id="listing-height"
                         inputMode="decimal"
                         aria-invalid={fieldState.invalid}
+                        aria-describedby={fieldState.invalid ? 'listing-height-error' : undefined}
                         value={String(field.value ?? '')}
                       />
-                      {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+                      {fieldState.invalid && (
+                        <FieldError
+                          id="listing-height-error"
+                          errors={[fieldError(fieldState.error)]}
+                        />
+                      )}
                     </Field>
                   )}
                 />
@@ -606,6 +632,7 @@ function CoordinateInput({
         inputMode="decimal"
         value={text}
         aria-invalid={invalid}
+        aria-describedby={invalid ? `${id}-error` : undefined}
         onBlur={onBlur}
         onChange={(event) => {
           const next = event.target.value
@@ -614,7 +641,7 @@ function CoordinateInput({
           onValue(parsed === undefined || Number.isNaN(parsed) ? undefined : parsed)
         }}
       />
-      {invalid && <FieldError errors={[error ?? {}]} />}
+      {invalid && <FieldError id={`${id}-error`} errors={[error ?? {}]} />}
     </Field>
   )
 }
@@ -645,10 +672,13 @@ function LedField({
             id={id}
             inputMode="numeric"
             aria-invalid={fieldState.invalid}
+            aria-describedby={fieldState.invalid ? `${id}-error` : undefined}
             value={String(field.value ?? '')}
           />
           <FieldDescription>{help}</FieldDescription>
-          {fieldState.invalid && <FieldError errors={[fieldError(fieldState.error)]} />}
+          {fieldState.invalid && (
+            <FieldError id={`${id}-error`} errors={[fieldError(fieldState.error)]} />
+          )}
         </Field>
       )}
     />

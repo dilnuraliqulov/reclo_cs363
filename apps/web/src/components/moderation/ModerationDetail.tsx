@@ -64,9 +64,13 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
       )
       onDecided(id)
     },
-    onError: (error) => {
+    onError: (error, decision) => {
       if (redirectOnAuthError(error)) return
-      toast.error(apiErrorText(error))
+      // A failed reject is shown inside the dialog, which stays open for a retry, unless the state
+      // moved on (409/404): then the dialog closes and the toast says why.
+      const stateMoved =
+        error instanceof ApiRequestError && (error.status === 409 || error.status === 404)
+      if (decision.kind === 'approve' || stateMoved) toast.error(apiErrorText(error))
       if (error instanceof ApiRequestError && error.status >= 400 && error.status < 500) {
         if (error.status === 409 || error.status === 404) {
           // The state moved on under the admin: show what it is now, and drop the typed reason,
@@ -196,7 +200,10 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
             variant="outline"
             className="min-h-10"
             disabled={decide.isPending}
-            onClick={() => setRejectOpen(true)}
+            onClick={() => {
+              decide.reset()
+              setRejectOpen(true)
+            }}
           >
             {t('moderation.action.reject')}
           </Button>
@@ -216,6 +223,7 @@ export function ModerationDetail({ id, onDecided }: ModerationDetailProps) {
         open={rejectOpen}
         onOpenChange={setRejectOpen}
         pending={decide.isPending}
+        error={rejectOpen && decide.variables?.kind === 'reject' ? decide.error : null}
         returnFocusRef={rejectButtonRef}
         onSubmit={(reason) => decide.mutate({ kind: 'reject', reason })}
       />
