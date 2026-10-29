@@ -5,7 +5,6 @@ import {
   VALIDATION_CODES,
   vendorPlacementListQuerySchema,
   type ApiError,
-  type ErrorCode,
   type VendorPlacementListResponse,
   type VendorPlacementResponse,
 } from '@reclo/shared'
@@ -14,6 +13,7 @@ import { rateLimit } from 'express-rate-limit'
 import multer from 'multer'
 import { z } from 'zod'
 import { requireRole } from '../auth/middleware'
+import { sendError, sendValidationError } from '../http'
 import { PHOTO_FILE_PATTERN, photoPath, sniffImageType, type PhotoStorage } from './photo-storage'
 import type { MutationResult, VendorPlacementStore } from './vendor-store'
 
@@ -26,23 +26,9 @@ export interface VendorPlacementRouterOptions {
   rateLimitMax: number
 }
 
-/** One ApiError per failure, so every response carries a `code` (docs/i18n-design.md). */
-function send(res: Response, status: number, error: string, code: ErrorCode): void {
-  res.status(status).json({ error, code } satisfies ApiError)
-}
+const send = sendError
 
 const notFound = (res: Response) => send(res, 404, 'Placement not found', 'PLACEMENT_NOT_FOUND')
-
-function sendValidationError(res: Response, error: z.ZodError): void {
-  const { fieldErrors, formErrors } = z.flattenError(error)
-  res.status(400).json({
-    error: 'Invalid input',
-    code: 'INVALID_INPUT',
-    // Already codes, not sentences: these schemas are parsed by the web form too. Errors that
-    // belong to no single field (an empty PATCH) travel under `_form`.
-    fieldErrors: formErrors.length > 0 ? { ...fieldErrors, _form: formErrors } : fieldErrors,
-  } satisfies ApiError)
-}
 
 const ARCHIVED_MESSAGE = 'Archived listings cannot be changed; restore the listing first'
 
@@ -88,7 +74,8 @@ function sendMutation(
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: LISTING_LIMITS.maxPhotoBytes, files: 1 },
+  // One file, a few ignored text fields at most: bounds what the parser buffers beyond the file.
+  limits: { fileSize: LISTING_LIMITS.maxPhotoBytes, files: 1, fields: 4, parts: 6 },
 }).single('photo')
 
 async function removeQuietly(photos: PhotoStorage, stored: string): Promise<void> {

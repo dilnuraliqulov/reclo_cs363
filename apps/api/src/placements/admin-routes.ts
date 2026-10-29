@@ -11,6 +11,7 @@ import { Router, type RequestHandler, type Response } from 'express'
 import { rateLimit } from 'express-rate-limit'
 import { z } from 'zod'
 import { requireRole } from '../auth/middleware'
+import { sendError, sendValidationError } from '../http'
 import type { AdminPlacementStore, DecisionRefusal, DecisionResult } from './admin-store'
 
 export interface AdminPlacementRouterOptions {
@@ -20,24 +21,9 @@ export interface AdminPlacementRouterOptions {
   rateLimitMax: number
 }
 
-function send(res: Response, status: number, error: string, code: ErrorCode): void {
-  res.status(status).json({ error, code } satisfies ApiError)
-}
+const send = sendError
 
 const notFound = (res: Response) => send(res, 404, 'Placement not found', 'PLACEMENT_NOT_FOUND')
-
-function sendValidationError(
-  res: Response,
-  error: z.ZodError,
-  code: 'INVALID_INPUT' | 'INVALID_QUERY',
-): void {
-  const { fieldErrors, formErrors } = z.flattenError(error)
-  res.status(400).json({
-    error: code === 'INVALID_QUERY' ? 'Invalid query' : 'Invalid input',
-    code,
-    fieldErrors: formErrors.length > 0 ? { ...fieldErrors, _form: formErrors } : fieldErrors,
-  } satisfies ApiError)
-}
 
 const REFUSALS: Record<Exclude<DecisionRefusal, 'NOT_FOUND'>, [string, ErrorCode]> = {
   NOT_PENDING: ['The listing is no longer waiting for review', 'PLACEMENT_NOT_PENDING'],
@@ -115,7 +101,7 @@ export function createAdminPlacementRouter({
   router.post<{ id: string }>('/:id/approve', decisionLimiter, async (req, res) => {
     const parsed = approvePlacementRequestSchema.safeParse(req.body)
     if (!parsed.success) {
-      sendValidationError(res, parsed.error, 'INVALID_INPUT')
+      sendValidationError(res, parsed.error)
       return
     }
     const expected = new Date(parsed.data.expectedUpdatedAt)
@@ -125,7 +111,7 @@ export function createAdminPlacementRouter({
   router.post<{ id: string }>('/:id/reject', decisionLimiter, async (req, res) => {
     const parsed = rejectPlacementRequestSchema.safeParse(req.body)
     if (!parsed.success) {
-      sendValidationError(res, parsed.error, 'INVALID_INPUT')
+      sendValidationError(res, parsed.error)
       return
     }
     const { expectedUpdatedAt, reason } = parsed.data

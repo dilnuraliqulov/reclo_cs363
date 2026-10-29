@@ -1,10 +1,17 @@
-import type { ApiError, HealthResponse } from '@reclo/shared'
+import type { HealthResponse } from '@reclo/shared'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import express, { type ErrorRequestHandler, type Express } from 'express'
+import express, { type Express } from 'express'
 import { createRequireAuth } from './auth/middleware'
 import { createAuthRouter } from './auth/routes'
 import type { AuthStore } from './auth/store'
+import {
+  errorHandler,
+  JSON_BODY_LIMIT,
+  notFoundHandler,
+  rejectNulBytes,
+  requireJsonBody,
+} from './http'
 import { createInquiryRouter } from './inquiries/routes'
 import type { InquiryStore } from './inquiries/store'
 import { createAdminPlacementRouter } from './placements/admin-routes'
@@ -70,7 +77,9 @@ export function createApp({
   if (corsOrigin) {
     app.use(cors({ origin: corsOrigin, credentials: true }))
   }
-  app.use(express.json())
+  app.use(requireJsonBody)
+  app.use(express.json({ limit: JSON_BODY_LIMIT }))
+  app.use(rejectNulBytes)
   app.use(cookieParser())
 
   app.get('/health', async (_req, res) => {
@@ -146,16 +155,7 @@ export function createApp({
     )
   }
 
-  // Express identifies error handlers by their four parameters, so `next` must stay.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-    if (error?.type === 'entity.parse.failed') {
-      res.status(400).json({ error: 'Malformed JSON', code: 'MALFORMED_JSON' } satisfies ApiError)
-      return
-    }
-    console.error('Unhandled error', error)
-    res.status(500).json({ error: 'Something went wrong', code: 'INTERNAL' } satisfies ApiError)
-  }
+  app.use(notFoundHandler)
   app.use(errorHandler)
 
   return app
